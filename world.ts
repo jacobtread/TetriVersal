@@ -1,6 +1,5 @@
 import {random, rotateMatrix} from "./utils";
 import {SHAPES, SPAWN_DELAY} from "./constants";
-import {match} from "assert";
 
 class Piece {
     matrix: number[][] | null = null;
@@ -73,6 +72,9 @@ export class World {
 
     collisionsUpdated: boolean = false;
 
+    score: number = 0;
+    over: boolean = false;
+
     constructor(width: number = 12, height: number = 22) {
         this.width = width;
         this.height = height;
@@ -89,6 +91,23 @@ export class World {
         // Center to the middle of the screen
         this.piece.x = Math.floor(this.width / 2) - Math.floor(matrix.length / 2);
         this.piece.y = 0;
+    }
+
+    canMoveTo(x, y) {
+        const size = this.piece.size();
+        this.piece.collidedLeft = this.piece.x <= 0; // Left wall collision check
+        for (let x1 = x; x1 < x + size; x1++) {
+            for (let y1 = y; y1 < y + size; y1++) {
+                const tile = this.piece.tile(x1 - x, y1 - y);
+                if (tile != null && tile > 0) {
+                    const gridTile = this.tile(x1, y1);
+                    if (gridTile == null || gridTile > 0) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     collisions() {
@@ -108,7 +127,7 @@ export class World {
                     if (nextRow >= this.height - 1 && gridY >= this.height - 1) { // If reached the grid y bounds
                         this.piece.isGrounded = true;
                     }
-                    if (nextRowData) { // If we have a next row
+                    if (nextRowData != null) { // If we have a next row
                         const tile = nextRowData[gridX]; // The current tile
                         // If any tiles aren't air then we've collided
                         if (tile == null || tile > 0) this.piece.isGrounded = true;
@@ -133,21 +152,30 @@ export class World {
         this.collisionsUpdated = true;
     }
 
+    gameOver() {
+        this.piece.clear();
+        this.over = true;
+    }
+
     update() {
         this.collisions();
         if (!this.piece.playable() || !this.collisionsUpdated) return;
         if (this.piece.isGrounded) {
             this.piece.groundUpdates++;
             if (this.piece.groundUpdates >= 5) {
-                this.solidify();
+                const gameOver: boolean = this.solidify();
                 this.piece.groundUpdates = 0;
-                setTimeout(() => {
-                    this.spawn();
-                }, SPAWN_DELAY);
+                if (gameOver) {
+                    this.gameOver();
+                } else {
+                    setTimeout(() => {
+                        this.spawn();
+                    }, SPAWN_DELAY);
+                }
             }
         } else {
             this.piece.groundUpdates = 0;
-            if (this.piece.y + this.downAccel < this.height) {
+            if (this.piece.y + this.downAccel < this.height && this.canMoveTo(this.piece.x, this.piece.y + this.downAccel)) {
                 this.piece.y += this.downAccel;
             } else {
                 this.piece.y = this.height - this.piece.height();
@@ -223,20 +251,25 @@ export class World {
         this.downAccel = 1;
     }
 
-    solidify() {
+    solidify(): boolean {
         const size = this.piece.size();
+        let gameOver: boolean = false;
         for (let x = 0; x < size; x++) {
             for (let y = 0; y < size; y++) {
                 const tile = this.piece.tile(x, y);
-                const relX = this.piece.relX(x)
-                const relY = this.piece.relY(y)
+                const relX = this.piece.relX(x);
+                const relY = this.piece.relY(y);
                 const gridTile = this.tile(relX, relY);
+                if (relY <= 0 && tile > 0) {
+                    gameOver = true;
+                }
                 if (gridTile === 0 && tile > 0) {
                     this.grid[relY][relX] = tile;
                 }
             }
         }
         this.piece.clear();
+        return gameOver;
     }
 
     rendered(): number[][] {
