@@ -9,10 +9,7 @@ console.clear = () => console.log('\x1Bc')
 const world = new World(12, 22);
 
 world.spawn()
-const updateInterval = setInterval(() => {
-    world.update();
-    world.releaseDown();
-}, 200)
+
 const renderInterval = setInterval(() => {
     if (world.over) {
         console.clear();
@@ -25,7 +22,13 @@ const renderInterval = setInterval(() => {
     gridify(world.rendered());
     console.log(`  ${world.piece.collidedLeft ? chalk.bgGreen(' < ') : chalk.bgRed(' < ')} ${world.piece.collidedRight ? chalk.bgGreen(' > ') : chalk.bgRed(' > ')} ${world.piece.isGrounded ? chalk.bgGreen(' ^ ') : chalk.bgRed(' ^ ')}\n`);
     if (world.piece.playable()) gridify(world.piece.matrix);
-}, 30)
+}, 150);
+
+const updateInterval = setInterval(() => {
+    world.update();
+    world.releaseDown();
+}, 200)
+
 
 readline.emitKeypressEvents(process.stdin);
 process.stdin.setRawMode(true);
@@ -36,11 +39,11 @@ process.stdin.on('keypress', (str, key) => {
         switch (key.name) {
             case 'left':
             case 'a':
-                world.moveLeft();
+                world.isLeft = true;
                 break;
             case 'right':
             case 'd':
-                world.moveRight();
+                world.isRight = true;
                 break;
             case 'up':
             case 'w':

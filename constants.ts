@@ -32,3 +32,4 @@ export const SHAPES = [
 ];
 
 export const SPAWN_DELAY = 200;
+export const PLACE_DELAY = 2;

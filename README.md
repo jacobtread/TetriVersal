@@ -33,7 +33,9 @@ This game is currently in an unfinished state
   getting as many points as possible with teamwork
     - 3+ players
 - "VS" (Maybe) - Side by side challenge mode competing to see who can get the highest score
-
+- "Control Swap" - The controls for the game are randomly swapped between the players and they must work 
+together to achieve a win
+  
 ### 👨‍🎓 Completed
 
 - [x] Basic Server Implementation
@@ -45,7 +47,7 @@ This game is currently in an unfinished state
 ### 👀 TODO
 
 - [ ] Fix bugs in collisions system
-- [ ] Get a websocket connection up and runnning with the Unity game
+- [ ] Get a websocket connection up and running with the Unity game
 - [ ] Implement the world into the server
 - [ ] Clean up the code 
 - [ ] Documentation

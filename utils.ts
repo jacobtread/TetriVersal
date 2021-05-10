@@ -19,6 +19,8 @@ export const rotateMatrix = (matrix: number[][], amount: number = 1): number[][]
     return rotateArr;
 }
 
+export const deepArrayCopy = (array: any[]): any[] => JSON.parse(JSON.stringify(array));
+
 export const random = (min: number, max: number): number => Math.floor(Math.random() * (max - min) + min);
 
 export const gridify = (rows: any[][]) => {
@@ -27,13 +29,14 @@ export const gridify = (rows: any[][]) => {
             return prev + '_' + curr
         });
         while (line.match(/_[0-9]/)) {
-            line = line.replace('_0', chalk.bgHex('#333333').gray('  '))
-            line = line.replace('_1', chalk.bgGreen('  '))
-            line = line.replace('_2', chalk.bgCyan('  '))
-            line = line.replace('_3', chalk.bgRed('  '))
-            line = line.replace('_4', chalk.bgYellow('  '))
-            line = line.replace('_5', chalk.bgMagenta('  '))
-            line = line.replace('_6', chalk.bgBlue('  '))
+            line = line.replace('_0', chalk.bgHex('#333333').gray(' 0 '))
+            line = line.replace('_1', chalk.bgGreen(' 1 '))
+            line = line.replace('_2', chalk.bgCyan(' 2 '))
+            line = line.replace('_3', chalk.bgRed(' 3 '))
+            line = line.replace('_4', chalk.bgYellow(' 4 '))
+            line = line.replace('_5', chalk.bgMagenta(' 5 '))
+            line = line.replace('_6', chalk.bgBlue(' 6 '))
+            line = line.replace('_9', chalk.white(' 9 '))
         }
         console.log('  ' + line)
     })
