@@ -46,10 +46,11 @@ together to achieve a win
 
 ### 👀 TODO
 
-- [ ] Fix bugs in collisions system
+- [x] Fix bugs in collisions system
+- [x] Clean up the code
 - [ ] Get a websocket connection up and running with the Unity game
 - [ ] Implement the world into the server
-- [ ] Clean up the code 
 - [ ] Documentation
+- [ ] Re-write Packet system 
 
 Code go brrrr 🧠
