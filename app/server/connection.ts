@@ -16,6 +16,8 @@ import {
     PlayerLeavePacket
 } from "./packets";
 import {GameServer} from "./server";
+import {log as _log} from "../utils";
+import chalk from "chalk";
 
 class Connection {
 
@@ -42,7 +44,7 @@ class Connection {
             this.process(packet);
         } catch (e) {
             if (e instanceof InvalidPacketException) {
-                this.log('Received invalid packet: ' + message);
+                this.log('INVALID PACKET', e.message, chalk.bgRed.black)
             }
         }
     }
@@ -50,7 +52,9 @@ class Connection {
     send(packet: any) {
         const data = JSON.stringify(packet);
         this.session.send(data, (err: Error | undefined) => {
-            if (err) console.error('Unable to send packet: ' + err.message);
+            if (err) {
+                this.log('SEND FAIL', err.message, chalk.bgRed.black)
+            }
         });
     }
 
@@ -77,9 +81,6 @@ class Connection {
         } else if (id === 2) {
             const disconnect: DisconnectPacket = packet as DisconnectPacket;
             this.disconnect(disconnect.reason);
-        } else if (id === 3) {
-            const moveActive: MoveActivePacket = packet as MoveActivePacket;
-            this.log('Move: ' + moveActive);
         }
     }
 
@@ -94,6 +95,7 @@ class Connection {
     }
 
     close(reason: string | null = null) {
+        if (this.deathTimeout !== undefined) clearTimeout(this.deathTimeout);
         try {
             this.session.close();
         } catch (e) {
@@ -108,10 +110,13 @@ class Connection {
         }, DEATH_TIMEOUT);
     }
 
-    log(data: any) {
-        console.group(this.uuid);
-        console.log(`[${this.uuid}] ${data}`);
-        console.groupEnd();
+    log(
+        title: string,
+        message: any,
+        titleColor = chalk.bgYellow.black,
+        messageColor = chalk.bgHex('#111111').gray,
+    ) {
+        _log(title, message, titleColor, messageColor, this.uuid);
     }
 
 }

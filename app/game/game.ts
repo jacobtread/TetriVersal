@@ -4,25 +4,25 @@ import {Collisions} from "./collisions";
 import {Controller} from "./controller";
 import {SPAWN_DELAY, TETRIMINIOS, UPDATE_DELAY} from "../constants";
 import {deepArrayCopy, random} from "../utils";
+import {GameServer} from "../server/server";
 
 export class Game {
 
-    map: GameMap
-    collisions: Collisions
-    controller: Controller
+    map: GameMap;
+    server: GameServer;
+    collisions: Collisions;
+    controller: Controller;
     active: Piece | null;
 
     spawnUpdates: number = 0;
     score: number = 0;
 
-    constructor() {
+    constructor(server: GameServer) {
+        this.server = server;
         this.map = new GameMap(this);
         this.collisions = new Collisions(this);
         this.controller = new Controller(this);
         this.active = null;
-        setInterval(async () => {
-            await this.update();
-        }, UPDATE_DELAY);
     }
 
     spawn() {

@@ -41,11 +41,14 @@ const PLACE_DELAY: number = parseInt(process.env.PLACE_DELAY ?? '1.5');
 
 const PORT: number = parseInt(process.env.PORT ?? '80');
 
+const MIN_PLAYERS: number = parseInt(process.env.MIN_PLAYERS ?? '2');
+
 export {
     TETRIMINIOS,
     UPDATE_DELAY,
     SPAWN_DELAY,
     PLACE_DELAY,
     DEATH_TIMEOUT,
-    PORT
+    PORT,
+    MIN_PLAYERS,
 }

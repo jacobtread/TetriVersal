@@ -1,3 +1,5 @@
+import chalk from "chalk";
+
 function deepArrayCopy<V>(array: V[]): V[] {
     return JSON.parse(JSON.stringify(array))
 }
@@ -25,6 +27,33 @@ function rotateMatrix(matrix: number[][]): number[][] {
 
 function random(min: number, max: number): number {
     return Math.floor(Math.random() * (max - min) + min)
+}
+
+function centerText(text: string, width: number) {
+    const diff = Math.floor((width / 2) - (text.length / 2));
+    text = ' '.repeat(diff) + text + ' '.repeat(diff);
+    return text;
+}
+
+export function log(
+    title: string,
+    _message: any,
+    titleColor = chalk.bgYellow.black,
+    messageColor = chalk.bgHex('#111111').gray,
+    suffix: string | null = null,
+    suffixColor = chalk.hex('#222222'),
+    debug: boolean = false
+) {
+    const message = typeof _message === 'string' ? _message as string : JSON.stringify(_message);
+    title = centerText(title, 15);
+    if (title.length < 15) {
+        title = ' '.repeat(15 - title.length) + title;
+    }
+    if (suffix !== null) {
+        console.log(titleColor(title), messageColor(message), suffixColor(suffix))
+    } else {
+        console.log(titleColor(title), messageColor(message))
+    }
 }
 
 export {deepArrayCopy, deepCopy, rotateMatrix, random}

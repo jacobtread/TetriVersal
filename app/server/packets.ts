@@ -1,27 +1,28 @@
 import {deepCopy} from "../utils";
 
 function createPacket<P extends BasePacket>(id: number, assigner: ((packet: P) => void) = _ => {
-}): P {
-    if (id in outboundPackets) {
-        const packet: P = deepCopy(outboundPackets[id]) as P;
+}, packets: PacketRegister = serverPackets): P {
+    if (id in packets) {
+        const packet: P = deepCopy(packets[id]) as P;
         packet.id = id;
         assigner(packet);
         return packet;
     } else throw new InvalidPacketException('No outbound packet mapped to ID ' + id)
 }
 
-function parsePacket<P extends BasePacket>(data: string): P {
+function parsePacket<P extends BasePacket>(data: string, packets: PacketRegister = clientPackets): P {
     const body = JSON.parse(data);
     if ('id' in body) {
         const id: number = body.id as number;
-        if (id in inboundPackets) {
-            const packet: any = deepCopy(inboundPackets[id]);
+        if (id in packets) {
+            const packet: any = deepCopy(packets[id]);
             const keys = Object.keys(packet);
             for (let key of keys) {
                 if (key in packet && key in body) {
                     packet[key] = body[key];
                 }
             }
+            packet.id = id;
             return packet;
         } else throw new InvalidPacketException('No inbound packet mapped to ID ' + id)
     } else throw new InvalidPacketException('Packet missing "id"');
@@ -83,7 +84,7 @@ interface PlayPacket extends BasePacket {
 }
 
 // Packet indicating the game has been paused
-interface PausePacket extends BasePacket {
+interface StopPacket extends BasePacket {
 
 }
 
@@ -132,7 +133,7 @@ interface KeepAlivePacket extends BasePacket {
 
 }
 
-const outboundPackets: PacketRegister = {
+const serverPackets: PacketRegister = {
     0: {} as KeepAlivePacket,
     1: {uuid: ''} as JoinResponsePacket,
     2: {reason: ''} as JoinFailurePacket,
@@ -140,7 +141,7 @@ const outboundPackets: PacketRegister = {
     4: {name: '', uuid: ''} as PlayerJoinPacket,
     5: {reason: '', name: ''} as PlayerLeavePacket,
     6: {} as PlayPacket,
-    7: {} as PausePacket,
+    7: {} as StopPacket,
     8: {} as ControlPacket,
     9: {name: '', uuid: ''} as ControlsPacket,
     10: {lines: ['']} as BulkMapPacket,
@@ -150,7 +151,7 @@ const outboundPackets: PacketRegister = {
     14: {} as RotateActivePacket,
 }
 
-const inboundPackets: PacketRegister = {
+const clientPackets: PacketRegister = {
     0: {} as KeepAlivePacket,
     1: {name: ''} as JoinRequestPacket,
     2: {key: ''} as CInputPacket,
@@ -158,6 +159,8 @@ const inboundPackets: PacketRegister = {
 }
 
 export {
+    clientPackets,
+    serverPackets,
     InvalidPacketException,
     parsePacket,
     createPacket,
@@ -167,6 +170,10 @@ export {
     JoinResponsePacket,
     JoinFailurePacket,
     DisconnectPacket,
+    PlayPacket,
+    StopPacket,
+    ControlPacket,
+    ControlsPacket,
     PlayerJoinPacket,
     PlayerLeavePacket,
     CInputPacket,
