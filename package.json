@@ -4,8 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "ts-node old/server.ts",
-    "test": "ts-node test.ts"
+
   },
   "author": "Jacobtread <jacobtread@gmail.com>",
   "license": "MIT",
