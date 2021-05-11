@@ -26,17 +26,6 @@ export class Controller {
         // If there is no active piece ignore everything else
         if (active === null) return;
         const collisions: Collisions = this.game.collisions; // Get the current collisions
-        if (this.moveLeft) { // If move left has been requested
-            if (!collisions.collidedLeft) { // If we aren't touching anything on the left
-                active.x--;
-            }
-            this.moveLeft = false;
-        } else if (this.moveRight) { // If move right has been requested
-            if (!collisions.collidedRight) { // If we aren't touching anything on the right
-                active.x++;
-            }
-            this.moveRight = false;
-        }
         if (collisions.collidedBottom) {
             if (collisions.groundUpdates >= PLACE_DELAY) {
                 collisions.groundUpdates = 0;
@@ -47,6 +36,7 @@ export class Controller {
                 if (solid.atLimit()) {
                     this.game.gameOver();
                 }
+                return;
             }
         } else {
             if (this.moveRotate) {
@@ -73,6 +63,17 @@ export class Controller {
                 }
 
             }
+        }
+        if (this.moveLeft) { // If move left has been requested
+            if (!collisions.collidedLeft) { // If we aren't touching anything on the left
+                active.x--;
+            }
+            this.moveLeft = false;
+        } else if (this.moveRight) { // If move right has been requested
+            if (!collisions.collidedRight) { // If we aren't touching anything on the right
+                active.x++;
+            }
+            this.moveRight = false;
         }
     }
 

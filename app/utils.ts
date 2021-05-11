@@ -2,6 +2,10 @@ function deepArrayCopy<V>(array: V[]): V[] {
     return JSON.parse(JSON.stringify(array))
 }
 
+function deepCopy<O>(object: O): O {
+    return JSON.parse(JSON.stringify(object));
+}
+
 function rotateMatrix(matrix: number[][]): number[][] {
     let output = matrix.map((a) => a.slice());
     const size = output.length;
@@ -23,4 +27,4 @@ function random(min: number, max: number): number {
     return Math.floor(Math.random() * (max - min) + min)
 }
 
-export {deepArrayCopy, rotateMatrix, random}
+export {deepArrayCopy, deepCopy, rotateMatrix, random}

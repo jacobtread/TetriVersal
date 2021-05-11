@@ -10,7 +10,7 @@
 A small game project idea for a multiplayer Tetri style game where the controls rotate between the players developed
 by [👓 Jacobtread](https://github.com/jacobtread) and [🥽 LaSpruca](https://github.com/laspruca)
 
-The final product of the game is intended to have multiple gamemodes
+The final product of the game is intended to have multiple game-modes
 
 This game is being made to be used as our lan game for the NCEA
 Assignment [👨‍🎓 2.6 - AS91895](https://www.nzqa.govt.nz/nqfdocs/ncea-resource/achievements/2019/as91895.pdf) instead of us
@@ -51,6 +51,8 @@ together to achieve a win
 - [ ] Get a websocket connection up and running with the Unity game
 - [ ] Implement the world into the server
 - [ ] Documentation
-- [ ] Re-write Packet system 
+  - Kind of making progress on this, but it will just end up happening as I go
+  or just when I get bored
+- [x] Re-write Packet system 
 
 Code go brrrr 🧠

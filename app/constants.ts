@@ -31,10 +31,21 @@ const TETRIMINIOS = [
     ]
 ];
 
-const UPDATE_DELAY = 200;
+const UPDATE_DELAY: number = parseInt(process.env.UPDATE_DELAY ?? '200');
+
+const DEATH_TIMEOUT: number = parseInt(process.env.DEATH_TIMEOUT ?? '1000');
 
 // (SPAWN/PLACE)_DELAY * PLACE_DELAY = Theoretical place delay (ignoring system lag)
-const SPAWN_DELAY = 3;
-const PLACE_DELAY = 1.5;
+const SPAWN_DELAY: number = parseInt(process.env.SPAWN_DELAY ?? '3');
+const PLACE_DELAY: number = parseInt(process.env.PLACE_DELAY ?? '1.5');
 
-export {TETRIMINIOS, UPDATE_DELAY, SPAWN_DELAY, PLACE_DELAY}
+const PORT: number = parseInt(process.env.PORT ?? '80');
+
+export {
+    TETRIMINIOS,
+    UPDATE_DELAY,
+    SPAWN_DELAY,
+    PLACE_DELAY,
+    DEATH_TIMEOUT,
+    PORT
+}

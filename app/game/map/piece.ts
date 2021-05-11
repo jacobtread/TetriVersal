@@ -51,7 +51,7 @@ export class Piece {
     atLimit(): boolean {
         const row: number[] = this.tiles[0]; // Get the first row (can ignore the rest)
         const gridY: number = this.y;
-        if (gridY === 0) { // If our grid position is 0 (The top)
+        if (gridY <= 0) { // If our grid position is 0 (The top)
             for (let x = 0; x < row.length; x++) { // Move through all the columns
                 const tile: number = row[x];
                 if (tile > 0) { // If this is a data tile
