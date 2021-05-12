@@ -15,8 +15,6 @@ export class Controller {
     moveDown: boolean = false;
     moveRotate: boolean = false;
 
-    placeUpdates: number = 0;
-
     constructor(game: Game) {
         this.game = game;
         this.map = game.map;

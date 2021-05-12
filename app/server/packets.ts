@@ -83,7 +83,7 @@ interface PlayPacket extends BasePacket {
 
 }
 
-interface TimeTillStart extends BasePacket {
+interface TimeTillStartPacket extends BasePacket {
     time: number;
 }
 
@@ -163,7 +163,7 @@ const serverPackets: PacketRegister = {
     4: {name: '', uuid: ''} as PlayerJoinPacket,
     5: {reason: '', name: ''} as PlayerLeavePacket,
     6: {} as PlayPacket,
-    7: {time: 0} as TimeTillStart,
+    7: {time: 0} as TimeTillStartPacket,
     8: {} as StopPacket,
     9: {} as ControlPacket,
     10: {name: '', uuid: ''} as ControlsPacket,
@@ -197,7 +197,7 @@ export {
     JoinFailurePacket,
     DisconnectPacket,
     PlayPacket,
-    TimeTillStart,
+    TimeTillStartPacket,
     StopPacket,
     ControlPacket,
     ControlsPacket,

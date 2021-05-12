@@ -23,7 +23,7 @@ import {
     PlayerLeavePacket,
     ScoreUpdatePacket,
     serverPackets,
-    TimeTillStart
+    TimeTillStartPacket
 } from "../app/server/packets";
 import {deepCopy, log, random} from "../app/utils";
 import chalk from "chalk";
@@ -91,7 +91,7 @@ function processPacket(packet: BasePacket) {
         state = 1;
         log('GAME', 'GAME START', chalk.bgRed.black);
     } else if (id === 7) {
-        const timeTillStart: TimeTillStart = packet as TimeTillStart;
+        const timeTillStart: TimeTillStartPacket = packet as TimeTillStartPacket;
         state = 2;
         log('GAME', 'GAME STARTING IN ' + timeTillStart.time, chalk.bgRed.black);
     } else if (id === 8) {
@@ -192,10 +192,14 @@ setInterval(async () => {
         console.log('GAME LOST');
         log('GAME', 'WAITING TO START', chalk.bgRed.black)
     } else if (state == 1) {
-        gridify(await render())
+        gridify(await render());
+        if(isControlling) {
+            log('CONTROL', 'I AM IN CONTROL' , chalk.bgYellow.black)
+        }
     } else if (state == 2) {
         log('GAME', 'WAITING TO START', chalk.bgYellow.black)
     }
+
 }, 100);
 
 function input(value: string) {

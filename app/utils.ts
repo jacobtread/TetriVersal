@@ -60,7 +60,9 @@ function rotateMatrix(matrix: number[][]): number[][] {
  *  @return number The generated number
  */
 function random(min: number, max: number): number {
-    return Math.floor(Math.random() * (max - min) + min)
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
 /**

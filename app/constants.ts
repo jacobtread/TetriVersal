@@ -1,3 +1,4 @@
+// The tiles structures of each tetrimino
 const TETRIMINIOS = [
     [
         [1, 1],
@@ -31,19 +32,24 @@ const TETRIMINIOS = [
     ]
 ];
 
+// The delay between each update
 const UPDATE_DELAY: number = parseInt(process.env.UPDATE_DELAY ?? '200');
-
+// The delay before keep alive connections will die
 const DEATH_TIMEOUT: number = parseInt(process.env.DEATH_TIMEOUT ?? '1000');
-
-// (SPAWN/PLACE)_DELAY * PLACE_DELAY = Theoretical place delay (ignoring system lag)
+// SPAWN_DELAY * PLACE_DELAY = Theoretical spawn delay (ignoring system lag)
 const SPAWN_DELAY: number = parseInt(process.env.SPAWN_DELAY ?? '3');
+// PLACE_DELAY * PLACE_DELAY = Theoretical place delay (ignoring system lag)
 const PLACE_DELAY: number = parseInt(process.env.PLACE_DELAY ?? '1.5');
-
+// The port the server runs on
 const PORT: number = parseInt(process.env.PORT ?? '80');
 // The minimum players required to start
-const MIN_PLAYERS: number = parseInt(process.env.MIN_PLAYERS ?? '1');
+const MIN_PLAYERS: number = parseInt(process.env.MIN_PLAYERS ?? '2');
 // Time before the game starts in seconds
 const TIME_TILL_START: number = parseInt(process.env.TIME_TILL_START ?? '2');
+// CONTROL SWAP MIN DELAY
+const CONTROL_SWAP_MIN: number = parseInt(process.env.CONTROL_SWAP_MIN ?? '15');
+// CONTROL SWAP MAX DELAY
+const CONTROL_SWAP_MAX: number = parseInt(process.env.CONTROL_SWAP_MAX ?? '20');
 
 export {
     TETRIMINIOS,
@@ -54,4 +60,6 @@ export {
     PORT,
     MIN_PLAYERS,
     TIME_TILL_START,
+    CONTROL_SWAP_MIN,
+    CONTROL_SWAP_MAX,
 }

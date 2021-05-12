@@ -4,153 +4,182 @@ import * as WebSocket from "ws";
 import {Data} from "ws";
 import {MIN_PLAYERS, PORT, TIME_TILL_START} from "../constants";
 import {Game} from "../game/game";
-import {ControlPacket, ControlsPacket, createPacket, MapSizePacket, PlayPacket, TimeTillStart} from "./packets";
-import {log, random} from "../utils";
+import {createPacket, MapSizePacket, PlayPacket, TimeTillStartPacket} from "./packets";
+import {log} from "../utils";
 import chalk from "chalk";
 
 class GameServer {
-    connections: Connection[];
-    server: WebSocket.Server;
-    game: Game | null = null;
-    controller: Connection | null = null;
-    startTimeout: NodeJS.Timeout | undefined;
+    connections: Connection[]; // The current connections
+    server: WebSocket.Server; // The web socket server instance
+    game: Game | null = null; // The current game instance
+    startTimeout: NodeJS.Timeout | undefined; // The timeout for when the game will start
 
     constructor() {
-        this.connections = [];
-        this.server = new WebSocket.Server({
+        this.connections = []; // Assign connections to an empty row
+        this.server = new WebSocket.Server({ // Create a server with the requested port
             port: PORT,
             host: '0.0.0.0'
         });
-        this.server.on('listening', () => log('OPEN', `AWAITING CONNECTIONS ON ws://localhost:${PORT}`, chalk.bgGreen.black))
+        // When the server is listening print a message to the console
+        this.server.on('listening', () => log('OPEN', `AWAITING CONNECTIONS ON ws://localhost:${PORT}`, chalk.bgGreen.black));
+        // When a connection is received call the connection function
         this.server.on('connection', (session: WebSocket) => this.connection(session));
     }
 
-    connection(session: WebSocket) {
-        const connection = new Connection(this, session);
-        connection.log('OPEN', 'CONNECTED', chalk.bgGreen.black);
-        this.connections.push(connection);
-        session.on('message', (data: Data) => connection.message(data));
-        session.on('close', () => connection.close());
+    /**
+     *  Called when a connection is created
+     *
+     *  @param session The websocket client session
+     */
+    connection(session: WebSocket): void {
+        const connection = new Connection(this, session); // Create a new connection
+        connection.log('OPEN', 'CONNECTED', chalk.bgGreen.black); // Print it to the console
+        this.connections.push(connection); // Add it to the list of connections
+        session.on('message', (data: Data) => connection.message(data)); // When a message is received call it on the connection
+        session.on('close', () => connection.close()); // When a connection is closed close the object as well
     }
 
-    join(connection: Connection) {
+    /**
+     *  Called when a player joins the game
+     *
+     *  @param connection The connection that joined
+     */
+    join(connection: Connection): void {
         // TODO: Extra logic when players join the server
     }
 
-    input(connection: Connection, input: string) {
-        if (this.controller === null || this.game === null || !this.game.started) return;
-        if (connection.uuid === this.controller.uuid) {
-            if (input === 'left') {
-                this.game.controller.moveLeft = true;
-            } else if (input === 'right') {
-                this.game.controller.moveRight = true;
-            } else if (input === 'down') {
-                this.game.controller.moveDown = true;
-            } else if (input === 'rotate') {
-                this.game.controller.moveRotate = true;
-            }
-        }
+    /**
+     *  Called when a player submits input
+     *
+     *  @param connection The connection the input came from
+     *  @param input The input that was pressed
+     *
+     */
+    input(connection: Connection, input: string): void {
+        if (this.game === null || !this.game.started) return;
+        this.game.gameMode.input(connection, input)
     }
 
+    /**
+     *  Called whenever the server needs to be updated
+     *  handles all logic including starting the game
+     *  and game logic
+     */
     async update() {
         if (this.game === null) { // WAITING FOR GAME
-            if (this.active().length >= MIN_PLAYERS) {
-                this.startGame();
-            } else {
-
+            if (this.active().length >= MIN_PLAYERS) { // If we have the needed amount of players
+                this.startGame(); // Start the game
             }
         } else { // GAME ALREADY RUNNING
             await this.game.update();
         }
     }
 
-    startGame() {
-        this.game = new Game(this);
-        this.broadcast(createPacket<TimeTillStart>(7, packet => packet.time = TIME_TILL_START));
-        log('GAME', `STARTING IN ${TIME_TILL_START}s`, chalk.bgYellow.black)
+    /**
+     *  Called when the game is being started informs the clients
+     *  that the game is starting and tells the clients when the
+     *  game will be starting
+     */
+    startGame(): void {
+        this.game = new Game(this); // Create a new game instance
+        // Tell the clients when the game will start
+        this.broadcast(createPacket<TimeTillStartPacket>(7 /* ID = TimeTillStartPacket */, packet => packet.time = TIME_TILL_START));
+        log('GAME', `STARTING IN ${TIME_TILL_START}s`, chalk.bgYellow.black);
+        // Set a timeout for when the game will start
         this.startTimeout = setTimeout(async () => {
-            if (this.game !== null) {
-                this.broadcast(createPacket<MapSizePacket>(17, packet => {
-                    packet.width = this.game!.map.width;
-                    packet.height = this.game!.map.height;
+            if (this.game !== null) { // Make sure the game hasn't been stopped
+                this.game.gameMode.init(); // Initialize the gamemode
+                // Broadcast the map size paket to all the clients
+                this.broadcast(createPacket<MapSizePacket>(17 /* ID = MapSizePacket */, packet => {
+                    packet.width = this.game!.map.width; // Set the packet width
+                    packet.height = this.game!.map.height; // Set the packet height
                 }));
-                this.broadcast(createPacket<PlayPacket>(6));
-                this.assignControls();
-                this.game.started = true;
-                this.game.gameMode.start();
+                // Broadcast the play packet to all the clients
+                this.broadcast(createPacket<PlayPacket>(6 /* ID = PlayPacket */));
+                this.game.started = true; // Set the game to started
                 log('GAME', 'STARTED', chalk.bgGreen.black);
             }
         }, TIME_TILL_START * 1000);
     }
 
-    stopGame() {
-        if (this.startTimeout !== undefined) clearTimeout(this.startTimeout);
-        log('GAME', 'STOPPING', chalk.bgYellow.black);
-        if (this.game !== null) {
-            this.game.gameMode.stop();
-        }
-        this.game = null;
-        this.controller = null;
-        log('GAME', 'STOPPED', chalk.bgRed.black);
+    /**
+     *  Called when the game is stopped, clears timeouts
+     *  and stops the gamemode and them clears the current game
+     */
+    stopGame(): void {
+        if (this.startTimeout !== undefined) clearTimeout(this.startTimeout); // Clear the timeout
+        log('GAME', 'STOPPING', chalk.bgYellow.black); // Print to the console
+        if (this.game !== null) this.game.gameMode.stop(); // Stop the game mode
+        this.game = null; // Clear the game
+        log('GAME', 'STOPPED', chalk.bgRed.black); // Print to the console
     }
 
-    assignControls() {
-        log('CONTROLS', 'ASSIGNING', chalk.bgYellow.black);
-        const active: Connection[] = this.active();
-        if (active.length < 1) {
-            log('CONTROLS', 'NO ACTIVE CONNECTIONS', chalk.bgRed.black);
-            this.stopGame();
-            return;
-        }
-        const index: number = random(0, active.length - 1);
-        const connection: Connection = active[index];
-        this.controller = connection;
-        log('CONTROLS', 'ASSIGNED', chalk.bgGreen.black);
-        connection.send(createPacket<ControlPacket>(9));
-        this.broadcast(createPacket<ControlsPacket>(10, packet => {
-            packet.name = connection.name!;
-            packet.uuid = connection.uuid;
-        }), c => c.uuid === connection.uuid);
-    }
-
-    broadcast(packet: any, exclude: ((connection: Connection) => boolean) = _ => false) {
-        for (let connection of this.active()) {
-            if (!exclude(connection)) {
-                connection.send(packet);
+    /**
+     *  Broadcast the packet to all the connected clients
+     *  except for those excluded in the exclusion function
+     *
+     *  @param packet The packet of data to send
+     *  @param exclude The function for choosing which clients are excluded
+     */
+    broadcast(packet: any, exclude: ((connection: Connection) => boolean) = _ => false): void {
+        for (let connection of this.active()) { // Loop all active connections
+            if (!exclude(connection)) { // Check if its excluding
+                connection.send(packet); // Send the packet
             }
         }
     }
 
-    isNameUsable(name: string) {
-        for (let connection of this.connections) {
-            if (connection.name === name) {
-                return false;
+    /**
+     *  Returns whether or not the name can be used
+     *
+     *  @param name The name to check
+     *  @return boolean Whether or not it can be used
+     */
+    isNameUsable(name: string): boolean {
+        for (let connection of this.connections) { // Loop the connections
+            if (connection.name === name) { // If the name matches
+                return false; // The name is taken
             }
         }
-        return true;
+        return true; // The name is not taken
     }
 
+    /**
+     *  Generates a UUID for a connection
+     *
+     *  @return string The generated UUID
+     */
     uuid(): string {
-        const uuid = uuidv4();
-        for (let connection of this.connections) {
-            if (connection.uuid === uuid) {
-                return this.uuid();
+        const uuid = uuidv4(); // Generate a UUID
+        for (let connection of this.connections) { // Loop through the connections
+            if (connection.uuid === uuid) { // Check if the UUID matches
+                return this.uuid(); // Generate a new UUID
             }
         }
-        return uuid;
+        return uuid; // Return the UUID
     }
 
-    close(connection: Connection, reason: string | null = null) {
+    /**
+     *  Closes a connection with a client
+     *
+     *  @param connection The connection to close
+     *  @param reason The reason for the close or null
+     */
+    close(connection: Connection, reason: string | null = null): void {
+        // Remove this connection from the list
         this.connections = this.connections.filter(c => c.uuid !== connection.uuid);
-        connection.log('CLOSED', reason ?? '', chalk.bgYellow.black);
-        if (this.controller !== null) {
-            if (this.controller.uuid === connection.uuid) {
-                this.assignControls();
-            }
-        }
+        connection.log('CLOSED', reason ?? '', chalk.bgYellow.black); // Print to the console
+        if (this.game !== null) this.game.gameMode.close(connection, reason); // Trigger the close function on the game mode
     }
 
+    /**
+     *  Gets the active connections
+     *  (named connections)
+     *
+     *  @return Connection[] The active connections
+     */
     active(): Connection[] {
+        // Filter the active connections
         return this.connections.filter(connection => connection.name !== null);
     }
 }
