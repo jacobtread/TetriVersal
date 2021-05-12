@@ -1,4 +1,4 @@
-import {deepArrayCopy, rotateMatrix} from "../../utils";
+import {deepCopy, rotateMatrix} from "../../utils";
 
 export class Piece {
 
@@ -71,7 +71,7 @@ export class Piece {
      *  @return Piece The frozen piece
      */
     freeze(): Piece {
-        return new Piece(this.x, this.y, deepArrayCopy(this.tiles), true);
+        return new Piece(this.x, this.y, deepCopy(this.tiles), true);
     }
 
     /**

@@ -2,7 +2,7 @@ import chalk from "chalk";
 import readline from "readline";
 
 function gridify(rows: any[][]) {
-    rows.forEach(row => {
+    for (let row of rows) {
         let line: string = '_' + row.reduce((prev: string, curr: number): string => {
             return prev + '_' + curr
         });
@@ -17,8 +17,8 @@ function gridify(rows: any[][]) {
             line = line.replace('_9', chalk.white(' 9 '))
         }
         console.log('  ' + line)
-    })
-    console.log()
+    }
+    console.log();
 }
 readline.emitKeypressEvents(process.stdin);
 process.stdin.setRawMode(true);

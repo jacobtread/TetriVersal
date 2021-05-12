@@ -3,7 +3,7 @@ import {Piece} from "./map/piece";
 import {Collisions} from "./collisions";
 import {Controller} from "./controller";
 import {SPAWN_DELAY, TETRIMINIOS} from "../constants";
-import {createEmptyGrid, deepArrayCopy, log, random} from "../utils";
+import {createEmptyGrid, deepCopy, log, random} from "../utils";
 import {GameServer} from "../server/server";
 import {
     ActivePiecePacket,
@@ -47,7 +47,7 @@ export class Game {
 
     _next(): number[][] {
         const id = random(0, TETRIMINIOS.length);
-        return deepArrayCopy(TETRIMINIOS[id]);
+        return deepCopy(TETRIMINIOS[id]);
     }
 
     /**
