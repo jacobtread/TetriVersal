@@ -65,7 +65,7 @@ export class Controller {
                 if (this.game.active === null) break;
                 await collisions.update(); // Update the collisions every move
                 // If out bath is obscured break the expression
-                if (collisions.isObstructed(active.tiles, active.x, active.y)) break
+                if (collisions.isObstructed(active.tiles, active.x, active.y + 1)) break
                 if (!collisions.collidedBottom) { // If not collided at the bottom
                     collisions.groundUpdates = 0;
                     active.y++; // Move the active piece down
@@ -79,12 +79,14 @@ export class Controller {
         }
         if (this.moveLeft) { // If move left has been requested
             if (!collisions.collidedLeft) { // If we aren't touching anything on the left
+                if (collisions.isObstructed(active.tiles, active.x - 1, active.y)) return;
                 active.x--;
                 this.updateServer();
             }
             this.moveLeft = false;
         } else if (this.moveRight) { // If move right has been requested
             if (!collisions.collidedRight) { // If we aren't touching anything on the right
+                if (collisions.isObstructed(active.tiles, active.x + 1, active.y)) return;
                 active.x++;
                 this.updateServer();
             }

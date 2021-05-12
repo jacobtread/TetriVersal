@@ -102,7 +102,7 @@ class GameServer {
         this.broadcast(createPacket<ControlsPacket>(10, packet => {
             packet.name = connection.name!;
             packet.uuid = connection.uuid;
-        }))
+        }), c => c.uuid === connection.uuid);
     }
 
     broadcast(packet: any, exclude: ((connection: Connection) => boolean) = _ => false) {
