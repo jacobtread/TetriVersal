@@ -4,9 +4,9 @@ import * as readline from "readline";
 // import * as chalk from "chalk"
 // import {setInterval} from "timers";
 //
-// console.clear = () => {
-//     console.log('\x1Bc');
-// }
+console.clear = () => {
+    console.log('\x1Bc');
+}
 //
 // const game = new Game(12, 22);
 // let skipRender: boolean = false;

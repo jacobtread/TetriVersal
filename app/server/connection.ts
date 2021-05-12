@@ -2,7 +2,7 @@ import * as WebSocket from "ws";
 import {Data} from "ws";
 import {DEATH_TIMEOUT} from "../constants";
 import {
-    BasePacket,
+    BasePacket, CInputPacket,
     createPacket,
     DisconnectPacket,
     InvalidPacketException,
@@ -74,15 +74,17 @@ class Connection {
                     packet.uuid = this.uuid;
                     packet.name = this.name!;
                 }), connection => connection.uuid === this.uuid);
+                this.server.join(this);
             } else {
                 // Tell the client the join failed because the name was taken
                 this.send(createPacket<JoinFailurePacket>(2, packet => packet.reason = 'Name already in use!'));
             }
         } else if (id === 2) {
+            const input: CInputPacket = packet as CInputPacket;
+            this.server.input(this, input.key);
+        } else if(id === 3) {
             const disconnect: DisconnectPacket = packet as DisconnectPacket;
             this.disconnect(disconnect.reason);
-        } else if(id === 2) {
-
         }
     }
 

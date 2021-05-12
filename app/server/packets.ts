@@ -141,6 +141,11 @@ interface ScoreUpdatePacket extends BasePacket {
     score: number;
 }
 
+interface MapSizePacket extends BasePacket {
+    width: number;
+    height: number;
+}
+
 const serverPackets: PacketRegister = {
     0: {} as KeepAlivePacket,
     1: {uuid: ''} as JoinResponsePacket,
@@ -159,6 +164,7 @@ const serverPackets: PacketRegister = {
     14: {x: 0, y: 0} as MoveActivePacket,
     15: {} as RotateActivePacket,
     16: {score: 0} as ScoreUpdatePacket,
+    17: {width: 0, height: 0} as MapSizePacket,
 }
 
 const clientPackets: PacketRegister = {
@@ -193,5 +199,6 @@ export {
     MoveActivePacket,
     RotateActivePacket,
     NextPiecePacket,
-    ScoreUpdatePacket
+    ScoreUpdatePacket,
+    MapSizePacket
 }

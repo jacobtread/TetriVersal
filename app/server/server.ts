@@ -4,7 +4,7 @@ import * as WebSocket from "ws";
 import {Data} from "ws";
 import {MIN_PLAYERS, PORT, TIME_TILL_START} from "../constants";
 import {Game} from "../game/game";
-import {ControlPacket, ControlsPacket, createPacket, PlayPacket, TimeTillStart} from "./packets";
+import {ControlPacket, ControlsPacket, createPacket, MapSizePacket, PlayPacket, TimeTillStart} from "./packets";
 import {log, random} from "../utils";
 import chalk from "chalk";
 
@@ -32,8 +32,23 @@ class GameServer {
         session.on('close', () => connection.close());
     }
 
-    input(connection: Connection, input: string) {
+    join(connection: Connection) {
 
+    }
+
+    input(connection: Connection, input: string) {
+        if (this.controller === null || this.game === null || !this.game.started) return;
+        if (connection.uuid === this.controller.uuid) {
+            if (input === 'left') {
+                this.game.controller.moveLeft = true;
+            } else if (input === 'right') {
+                this.game.controller.moveRight = true;
+            } else if (input === 'down') {
+                this.game.controller.moveDown = true;
+            } else if (input === 'rotate') {
+                this.game.controller.moveRotate = true;
+            }
+        }
     }
 
     async update() {
@@ -53,6 +68,10 @@ class GameServer {
         this.broadcast(createPacket<TimeTillStart>(7, packet => packet.time = TIME_TILL_START));
         log('GAME', `STARTING IN ${TIME_TILL_START}s`, chalk.bgYellow.black)
         setTimeout(() => {
+            this.broadcast(createPacket<MapSizePacket>(17, packet => {
+                packet.width = this.game!.map.width;
+                packet.height = this.game!.map.height;
+            }));
             this.broadcast(createPacket<PlayPacket>(6));
             this.assignControls();
             this.game!.started = true;
@@ -70,6 +89,11 @@ class GameServer {
     assignControls() {
         log('CONTROLS', 'ASSIGNING', chalk.bgYellow.black);
         const active: Connection[] = this.active();
+        if (active.length < 1) {
+            log('CONTROLS', 'NO ACTIVE CONNECTIONS', chalk.bgRed.black);
+            this.stopGame();
+            return;
+        }
         const index: number = random(0, active.length - 1);
         const connection: Connection = active[index];
         this.controller = connection;

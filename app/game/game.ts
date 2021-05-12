@@ -88,9 +88,9 @@ export class Game {
 
     bulkUpdate() {
         const serialized: string[] = this.serializedString();
-        this.server.broadcast(createPacket<BulkMapPacket>(16, packet => {
-            packet.lines = serialized;
-        }));
+        let packet;
+        this.server.broadcast(packet = createPacket<BulkMapPacket>(11, packet => packet.lines = serialized));
+        log('BULK UPDATE', 'SENT', chalk.bgGreen.black)
     }
 
     serializedString(): string[] {
@@ -112,11 +112,7 @@ export class Game {
         for (let y = 0; y < this.map.height; y++) { // Loop over the full map height
             raw[y] = new Array(this.map.width).fill(0); // Fill the raw data with zeros
         }
-        let pieces = this.map.solid;
-        if (this.active !== null) {
-            pieces = pieces.concat(this.active);
-        }
-        for (let piece of pieces) {
+        for (let piece of this.map.solid) {
             for (let y = 0; y < piece.size; y++) {
                 const relY = piece.y + y;
                 for (let x = 0; x < piece.size; x++) {

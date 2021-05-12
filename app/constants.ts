@@ -41,9 +41,9 @@ const PLACE_DELAY: number = parseInt(process.env.PLACE_DELAY ?? '1.5');
 
 const PORT: number = parseInt(process.env.PORT ?? '80');
 // The minimum players required to start
-const MIN_PLAYERS: number = parseInt(process.env.MIN_PLAYERS ?? '2');
+const MIN_PLAYERS: number = parseInt(process.env.MIN_PLAYERS ?? '1');
 // Time before the game starts in seconds
-const TIME_TILL_START: number = parseInt(process.env.TIME_TILL_START ?? '5');
+const TIME_TILL_START: number = parseInt(process.env.TIME_TILL_START ?? '2');
 
 export {
     TETRIMINIOS,
