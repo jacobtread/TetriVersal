@@ -15,6 +15,8 @@ import {
     StopPacket
 } from "../server/packets";
 import chalk from "chalk";
+import {GameMode} from "./mode/gameMode";
+import {ControlSwap} from "./mode/modes/controlSwap";
 
 export class Game {
 
@@ -31,6 +33,8 @@ export class Game {
     nextPiece: number[][] = []; // The tile structure for the next piece
     spawnUpdates: number = 0; // How many updates have occurred since the last spawn
 
+    gameMode: GameMode;
+
     /**
      *  This class stores the core game data along with
      *  references which each part uses
@@ -43,6 +47,7 @@ export class Game {
         this.collisions = new Collisions(this);
         this.controller = new Controller(this);
         this.activePiece = null;
+        this.gameMode = new ControlSwap(this.server)
     }
 
     _next(): number[][] {
@@ -93,6 +98,7 @@ export class Game {
                 this.spawnUpdates++;
             }
         }
+        await this.gameMode.update();
     }
 
     /**

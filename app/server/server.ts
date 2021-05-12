@@ -68,7 +68,7 @@ class GameServer {
         this.game = new Game(this);
         this.broadcast(createPacket<TimeTillStart>(7, packet => packet.time = TIME_TILL_START));
         log('GAME', `STARTING IN ${TIME_TILL_START}s`, chalk.bgYellow.black)
-        this.startTimeout = setTimeout(() => {
+        this.startTimeout = setTimeout(async () => {
             if (this.game !== null) {
                 this.broadcast(createPacket<MapSizePacket>(17, packet => {
                     packet.width = this.game!.map.width;
@@ -77,6 +77,7 @@ class GameServer {
                 this.broadcast(createPacket<PlayPacket>(6));
                 this.assignControls();
                 this.game.started = true;
+                this.game.gameMode.start();
                 log('GAME', 'STARTED', chalk.bgGreen.black);
             }
         }, TIME_TILL_START * 1000);
@@ -85,6 +86,9 @@ class GameServer {
     stopGame() {
         if (this.startTimeout !== undefined) clearTimeout(this.startTimeout);
         log('GAME', 'STOPPING', chalk.bgYellow.black);
+        if (this.game !== null) {
+            this.game.gameMode.stop();
+        }
         this.game = null;
         this.controller = null;
         log('GAME', 'STOPPED', chalk.bgRed.black);

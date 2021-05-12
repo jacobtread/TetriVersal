@@ -129,21 +129,30 @@ interface RotateActivePacket extends BasePacket {
 
 }
 
+// Packet tells the client what the next piece is
 interface NextPiecePacket extends BasePacket {
     tile: number[][]
 }
 
+// Packets tells the server the client is still alive and vise versa
 interface KeepAlivePacket extends BasePacket {
 
 }
 
+// Packet tells the client the current score
 interface ScoreUpdatePacket extends BasePacket {
     score: number;
 }
 
+// Packet tells the client the map width and height
 interface MapSizePacket extends BasePacket {
     width: number;
     height: number;
+}
+
+// Packet tells the client when a row has been cleared
+interface RowClearedPacket extends BasePacket {
+    y: number;
 }
 
 const serverPackets: PacketRegister = {
@@ -165,6 +174,7 @@ const serverPackets: PacketRegister = {
     15: {} as RotateActivePacket,
     16: {score: 0} as ScoreUpdatePacket,
     17: {width: 0, height: 0} as MapSizePacket,
+    18: {y: 0} as RowClearedPacket
 }
 
 const clientPackets: PacketRegister = {
@@ -200,5 +210,6 @@ export {
     RotateActivePacket,
     NextPiecePacket,
     ScoreUpdatePacket,
-    MapSizePacket
+    MapSizePacket,
+    RowClearedPacket
 }
