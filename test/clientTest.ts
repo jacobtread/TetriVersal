@@ -1,5 +1,5 @@
 import WebSocket, {Data} from "ws";
-import {PORT} from "../app/constants";
+import {DEATH_TIMEOUT, PORT} from "../app/constants";
 import {
     BasePacket,
     clientPackets,
@@ -11,7 +11,8 @@ import {
     KeepAlivePacket,
     parsePacket,
     PlayerJoinPacket,
-    PlayerLeavePacket, ScoreUpdatePacket,
+    PlayerLeavePacket,
+    ScoreUpdatePacket,
     serverPackets
 } from "../app/server/packets";
 import {log, random} from "../app/utils";
@@ -62,7 +63,7 @@ function process(packet: BasePacket) {
     } else if (id === 5) {
         const playerLeave: PlayerLeavePacket = packet as PlayerLeavePacket;
         log('PLAYER LEAVE', playerLeave.name + ': ' + playerLeave.reason, chalk.bgYellow.black);
-    } else if(id === 8) {
+    } else if (id === 8) {
         log('GAME', 'GAME OVER', chalk.bgRed.black);
     } else if (id === 16) {
         const scoreUpdate: ScoreUpdatePacket = packet as ScoreUpdatePacket;
@@ -84,5 +85,5 @@ function setKeepAlive() {
     aliveTimeout = setTimeout(() => {
         send(createPacket<KeepAlivePacket>(0, _ => {
         }, clientPackets));
-    });
+    }, DEATH_TIMEOUT / 2);
 }

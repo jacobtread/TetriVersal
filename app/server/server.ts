@@ -13,6 +13,7 @@ class GameServer {
     server: WebSocket.Server;
     game: Game | null = null;
     controller: Connection | null = null;
+    startTimeout: NodeJS.Timeout | undefined;
 
     constructor() {
         this.connections = [];
@@ -33,7 +34,7 @@ class GameServer {
     }
 
     join(connection: Connection) {
-
+        // TODO: Extra logic when players join the server
     }
 
     input(connection: Connection, input: string) {
@@ -67,19 +68,22 @@ class GameServer {
         this.game = new Game(this);
         this.broadcast(createPacket<TimeTillStart>(7, packet => packet.time = TIME_TILL_START));
         log('GAME', `STARTING IN ${TIME_TILL_START}s`, chalk.bgYellow.black)
-        setTimeout(() => {
-            this.broadcast(createPacket<MapSizePacket>(17, packet => {
-                packet.width = this.game!.map.width;
-                packet.height = this.game!.map.height;
-            }));
-            this.broadcast(createPacket<PlayPacket>(6));
-            this.assignControls();
-            this.game!.started = true;
-            log('GAME', 'STARTED', chalk.bgGreen.black);
+        this.startTimeout = setTimeout(() => {
+            if (this.game !== null) {
+                this.broadcast(createPacket<MapSizePacket>(17, packet => {
+                    packet.width = this.game!.map.width;
+                    packet.height = this.game!.map.height;
+                }));
+                this.broadcast(createPacket<PlayPacket>(6));
+                this.assignControls();
+                this.game.started = true;
+                log('GAME', 'STARTED', chalk.bgGreen.black);
+            }
         }, TIME_TILL_START * 1000);
     }
 
     stopGame() {
+        if (this.startTimeout !== undefined) clearTimeout(this.startTimeout);
         log('GAME', 'STOPPING', chalk.bgYellow.black);
         this.game = null;
         this.controller = null;
