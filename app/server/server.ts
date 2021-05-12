@@ -2,9 +2,9 @@ import {Connection} from "./connection";
 import {v4 as uuidv4} from "uuid";
 import * as WebSocket from "ws";
 import {Data} from "ws";
-import {MIN_PLAYERS, PORT} from "../constants";
+import {MIN_PLAYERS, PORT, TIME_TILL_START} from "../constants";
 import {Game} from "../game/game";
-import {ControlPacket, ControlsPacket, createPacket, PlayPacket} from "./packets";
+import {ControlPacket, ControlsPacket, createPacket, PlayPacket, TimeTillStart} from "./packets";
 import {log, random} from "../utils";
 import chalk from "chalk";
 
@@ -32,6 +32,10 @@ class GameServer {
         session.on('close', () => connection.close());
     }
 
+    input(connection: Connection, input: string) {
+
+    }
+
     async update() {
         if (this.game === null) { // WAITING FOR GAME
             if (this.active().length >= MIN_PLAYERS) {
@@ -45,11 +49,15 @@ class GameServer {
     }
 
     startGame() {
-        log('GAME', 'STARTING', chalk.bgYellow.black);
         this.game = new Game(this);
-        this.broadcast(createPacket<PlayPacket>(6));
-        this.assignControls();
-        log('GAME', 'STARTED', chalk.bgGreen.black);
+        this.broadcast(createPacket<TimeTillStart>(7, packet => packet.time = TIME_TILL_START));
+        log('GAME', `STARTING IN ${TIME_TILL_START}s`, chalk.bgYellow.black)
+        setTimeout(() => {
+            this.broadcast(createPacket<PlayPacket>(6));
+            this.assignControls();
+            this.game!.started = true;
+            log('GAME', 'STARTED', chalk.bgGreen.black);
+        }, TIME_TILL_START * 1000);
     }
 
     stopGame() {
@@ -66,8 +74,8 @@ class GameServer {
         const connection: Connection = active[index];
         this.controller = connection;
         log('CONTROLS', 'ASSIGNED', chalk.bgGreen.black);
-        connection.send(createPacket<ControlPacket>(8));
-        this.broadcast(createPacket<ControlsPacket>(9, packet => {
+        connection.send(createPacket<ControlPacket>(9));
+        this.broadcast(createPacket<ControlsPacket>(10, packet => {
             packet.name = connection.name!;
             packet.uuid = connection.uuid;
         }))
@@ -102,7 +110,7 @@ class GameServer {
 
     close(connection: Connection, reason: string | null = null) {
         this.connections = this.connections.filter(c => c.uuid !== connection.uuid);
-        connection.log('CLOSED', reason, chalk.bgYellow.black);
+        connection.log('CLOSED', reason ?? '', chalk.bgYellow.black);
         if (this.controller !== null) {
             if (this.controller.uuid === connection.uuid) {
                 this.assignControls();

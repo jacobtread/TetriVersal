@@ -83,6 +83,10 @@ interface PlayPacket extends BasePacket {
 
 }
 
+interface TimeTillStart extends BasePacket {
+    time: number;
+}
+
 // Packet indicating the game has been paused
 interface StopPacket extends BasePacket {
 
@@ -133,6 +137,10 @@ interface KeepAlivePacket extends BasePacket {
 
 }
 
+interface ScoreUpdatePacket extends BasePacket {
+    score: number;
+}
+
 const serverPackets: PacketRegister = {
     0: {} as KeepAlivePacket,
     1: {uuid: ''} as JoinResponsePacket,
@@ -141,14 +149,16 @@ const serverPackets: PacketRegister = {
     4: {name: '', uuid: ''} as PlayerJoinPacket,
     5: {reason: '', name: ''} as PlayerLeavePacket,
     6: {} as PlayPacket,
-    7: {} as StopPacket,
-    8: {} as ControlPacket,
-    9: {name: '', uuid: ''} as ControlsPacket,
-    10: {lines: ['']} as BulkMapPacket,
-    11: {tile: [[0]]} as ActivePiecePacket,
-    12: {tile: [[0]]} as NextPiecePacket,
-    13: {x: 0, y: 0} as MoveActivePacket,
-    14: {} as RotateActivePacket,
+    7: {time: 0} as TimeTillStart,
+    8: {} as StopPacket,
+    9: {} as ControlPacket,
+    10: {name: '', uuid: ''} as ControlsPacket,
+    11: {lines: ['']} as BulkMapPacket,
+    12: {tile: [[0]]} as ActivePiecePacket,
+    13: {tile: [[0]]} as NextPiecePacket,
+    14: {x: 0, y: 0} as MoveActivePacket,
+    15: {} as RotateActivePacket,
+    16: {score: 0} as ScoreUpdatePacket,
 }
 
 const clientPackets: PacketRegister = {
@@ -171,6 +181,7 @@ export {
     JoinFailurePacket,
     DisconnectPacket,
     PlayPacket,
+    TimeTillStart,
     StopPacket,
     ControlPacket,
     ControlsPacket,
@@ -181,5 +192,6 @@ export {
     ActivePiecePacket,
     MoveActivePacket,
     RotateActivePacket,
-    NextPiecePacket
+    NextPiecePacket,
+    ScoreUpdatePacket
 }

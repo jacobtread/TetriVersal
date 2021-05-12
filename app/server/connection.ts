@@ -81,6 +81,8 @@ class Connection {
         } else if (id === 2) {
             const disconnect: DisconnectPacket = packet as DisconnectPacket;
             this.disconnect(disconnect.reason);
+        } else if(id === 2) {
+
         }
     }
 

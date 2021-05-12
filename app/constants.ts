@@ -40,8 +40,10 @@ const SPAWN_DELAY: number = parseInt(process.env.SPAWN_DELAY ?? '3');
 const PLACE_DELAY: number = parseInt(process.env.PLACE_DELAY ?? '1.5');
 
 const PORT: number = parseInt(process.env.PORT ?? '80');
-
+// The minimum players required to start
 const MIN_PLAYERS: number = parseInt(process.env.MIN_PLAYERS ?? '2');
+// Time before the game starts in seconds
+const TIME_TILL_START: number = parseInt(process.env.TIME_TILL_START ?? '5');
 
 export {
     TETRIMINIOS,
@@ -51,4 +53,5 @@ export {
     DEATH_TIMEOUT,
     PORT,
     MIN_PLAYERS,
+    TIME_TILL_START,
 }

@@ -39,11 +39,13 @@ export class GameMap {
         const total: number = cleared.length;
         if (total === 4) {
             this.game.addScore(800)
-        } else if (total < 4) {
+        } else if (total > 0 && total < 4) {
             this.game.addScore(100 * total)
         } else {
             const amount: number = Math.floor(total / 4);
-            this.game.addScore(1200 * amount)
+            if (amount > 0) {
+                this.game.addScore(1200 * amount);
+            }
         }
         for (let y of cleared) {
             await this.removeFilled(y);

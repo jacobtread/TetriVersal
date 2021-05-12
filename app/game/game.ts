@@ -2,9 +2,19 @@ import {GameMap} from "./map/map";
 import {Piece} from "./map/piece";
 import {Collisions} from "./collisions";
 import {Controller} from "./controller";
-import {SPAWN_DELAY, TETRIMINIOS, UPDATE_DELAY} from "../constants";
-import {deepArrayCopy, random} from "../utils";
+import {SPAWN_DELAY, TETRIMINIOS} from "../constants";
+import {deepArrayCopy, log, random} from "../utils";
 import {GameServer} from "../server/server";
+import {
+    ActivePiecePacket,
+    BulkMapPacket,
+    createPacket,
+    MoveActivePacket,
+    NextPiecePacket,
+    ScoreUpdatePacket,
+    StopPacket
+} from "../server/packets";
+import chalk from "chalk";
 
 export class Game {
 
@@ -13,9 +23,12 @@ export class Game {
     collisions: Collisions;
     controller: Controller;
     active: Piece | null;
+    next: number[][] = [];
 
     spawnUpdates: number = 0;
     score: number = 0;
+
+    started: boolean = false;
 
     constructor(server: GameServer) {
         this.server = server;
@@ -25,14 +38,29 @@ export class Game {
         this.active = null;
     }
 
-    spawn() {
+    nextPiece(): number[][] {
         const id = random(0, TETRIMINIOS.length);
-        const tiles = deepArrayCopy(TETRIMINIOS[id]);
+        return deepArrayCopy(TETRIMINIOS[id]);
+    }
+
+    spawn() {
+        if (this.next.length === 0) {
+            this.next = this.nextPiece();
+        }
+        const tiles = this.next;
         const x = Math.floor(this.map.width / 2) - Math.floor(tiles.length / 2);
         this.active = new Piece(x, -tiles.length, tiles);
+        this.server.broadcast(createPacket<ActivePiecePacket>(12, packet => packet.tile = tiles));
+        this.server.broadcast(createPacket<MoveActivePacket>(14, packet => {
+            packet.x = x;
+            packet.y = -tiles.length;
+        }));
+        this.next = this.nextPiece();
+        this.server.broadcast(createPacket<NextPiecePacket>(13, packet => packet.tile = this.next))
     }
 
     async update() {
+        if (!this.started) return;
         await this.collisions.update();
         await this.controller.update();
         if (this.active === null) {
@@ -46,12 +74,37 @@ export class Game {
     }
 
     gameOver() {
-        console.log('Game over');
-        process.exit(0);
+        this.server.broadcast(createPacket<StopPacket>(8));
+        log('GAME', 'GAME OVER', chalk.bgRed.black);
+        this.started = false;
     }
 
     addScore(amount: number) {
         this.score += amount;
+        this.server.broadcast(createPacket<ScoreUpdatePacket>(16, packet => {
+            packet.score = this.score;
+        }));
+    }
+
+    bulkUpdate() {
+        const serialized: string[] = this.serializedString();
+        this.server.broadcast(createPacket<BulkMapPacket>(16, packet => {
+            packet.lines = serialized;
+        }));
+    }
+
+    serializedString(): string[] {
+        const serialized: number[][] = this.serialize();
+        const rows: string[] = new Array(serialized.length);
+        for (let y = 0; y < rows.length; y++) {
+            let data = '';
+            const row = serialized[y];
+            for (let x = 0; x < row.length; x++) {
+                data += `${row[x]}`;
+            }
+            rows[y] = data;
+        }
+        return rows;
     }
 
     serialize(): number[][] {

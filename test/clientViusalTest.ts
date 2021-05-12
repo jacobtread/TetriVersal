@@ -23,6 +23,10 @@ let aliveTimeout: NodeJS.Timeout;
 const client = new WebSocket(endpoint);
 const name = 'Client' + random(1000, 5000);
 
+const grid: number[][] = [];
+
+
+
 client.on('open', () => {
     log('CONNECTED', endpoint, chalk.bgGreen.black)
     send(createPacket<JoinRequestPacket>(1, packet => {
@@ -68,6 +72,10 @@ function process(packet: BasePacket) {
         const scoreUpdate: ScoreUpdatePacket = packet as ScoreUpdatePacket;
         log('SCORE', scoreUpdate.score, chalk.bgYellow.black, chalk.yellow);
     }
+}
+
+function parseBulkData(lines: string[]) {
+
 }
 
 function send(packet: any) {

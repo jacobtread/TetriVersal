@@ -3,6 +3,7 @@ import {PLACE_DELAY} from "../constants";
 import {Piece} from "./map/piece";
 import {Collisions} from "./collisions";
 import {GameMap} from "./map/map";
+import {createPacket, MoveActivePacket, RotateActivePacket} from "../server/packets";
 
 export class Controller {
 
@@ -21,6 +22,15 @@ export class Controller {
         this.map = game.map;
     }
 
+    updateServer() {
+        const active: Piece | null = this.game.active;
+        if (active == null) return;
+        this.game.server.broadcast(createPacket<MoveActivePacket>(14, packet => {
+            packet.x = active.x;
+            packet.y = active.y;
+        }));
+    }
+
     async update() {
         const active: Piece | null = this.game.active;
         // If there is no active piece ignore everything else
@@ -33,6 +43,7 @@ export class Controller {
                 this.map.solid.push(solid);
                 this.game.active = null;
                 await this.map.collectFilled();
+                this.game.bulkUpdate();
                 if (solid.atLimit()) {
                     this.game.gameOver();
                 }
@@ -43,6 +54,7 @@ export class Controller {
                 const rotatedPiece: Piece = active.rotate();
                 if (!collisions.isObstructed(rotatedPiece.tiles, active.x, active.y)) {
                     this.game.active = rotatedPiece;
+                    this.game.server.broadcast(createPacket<RotateActivePacket>(15))
                 }
                 this.moveRotate = false;
             }
@@ -57,6 +69,7 @@ export class Controller {
                 if (!collisions.collidedBottom) { // If not collided at the bottom
                     collisions.groundUpdates = 0;
                     active.y++; // Move the active piece down
+                    this.updateServer();
                 } else {
                     collisions.groundUpdates++;
                     break;
@@ -67,11 +80,13 @@ export class Controller {
         if (this.moveLeft) { // If move left has been requested
             if (!collisions.collidedLeft) { // If we aren't touching anything on the left
                 active.x--;
+                this.updateServer();
             }
             this.moveLeft = false;
         } else if (this.moveRight) { // If move right has been requested
             if (!collisions.collidedRight) { // If we aren't touching anything on the right
                 active.x++;
+                this.updateServer();
             }
             this.moveRight = false;
         }
