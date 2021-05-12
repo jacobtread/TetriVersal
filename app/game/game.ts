@@ -3,7 +3,7 @@ import {Piece} from "./map/piece";
 import {Collisions} from "./collisions";
 import {Controller} from "./controller";
 import {SPAWN_DELAY, TETRIMINIOS} from "../constants";
-import {deepArrayCopy, log, random} from "../utils";
+import {createEmptyGrid, deepArrayCopy, log, random} from "../utils";
 import {GameServer} from "../server/server";
 import {
     ActivePiecePacket,
@@ -14,7 +14,6 @@ import {
     ScoreUpdatePacket,
     StopPacket
 } from "../server/packets";
-
 import chalk from "chalk";
 
 export class Game {
@@ -79,7 +78,8 @@ export class Game {
     }
 
     /**
-     *
+     *  Asynchronous game update loop, updates collisions, input
+     *  and spawn handling
      */
     async update() {
         if (!this.started) return;
@@ -95,26 +95,47 @@ export class Game {
         }
     }
 
+    /**
+     *  This function is called whenever the game is lost
+     *  (aka from reaching the top)
+     */
     gameOver() {
         this.server.broadcast(createPacket<StopPacket>(8));
         log('GAME', 'GAME OVER', chalk.bgRed.black);
         this.started = false;
     }
 
+    /**
+     *  This function adds the amount provided to the total score
+     *  then sends a ScoreUpdatePacket to the connected clients
+     *
+     *  @param amount The amount of score to add
+     */
     addScore(amount: number) {
-        this.score += amount;
-        this.server.broadcast(createPacket<ScoreUpdatePacket>(16, packet => {
-            packet.score = this.score;
-        }));
+        this.score += amount; // Increases the score by the amount
+        this.server.broadcast(createPacket<ScoreUpdatePacket>(16 /* ID = ScoreUpdatePacket */, packet => packet.score = this.score));
     }
 
+    /**
+     *  This function creates and sends a bulk update packet
+     *  which contains all the map data
+     */
     bulkUpdate() {
-        const serialized: string[] = this.serializedString();
-        let packet;
-        this.server.broadcast(packet = createPacket<BulkMapPacket>(11, packet => packet.lines = serialized));
+        const serialized: string[] = this.serializedString(); // Generate the serialized map data (rows of strings)
+        // Broadcast the packet to all the clients
+        this.server.broadcast(createPacket<BulkMapPacket>(11 /* ID = BulkMapPacket */, packet => packet.lines = serialized));
+        // Pretty server logging of whats just happened
         log('BULK UPDATE', 'SENT', chalk.bgGreen.black)
     }
 
+
+    /**
+     *  Converts the serialized data into a list of strings
+     *  which is more efficient for transferring across the
+     *  network
+     *
+     *  @return string[] The serialized data
+     */
     serializedString(): string[] {
         const serialized: number[][] = this.serialize();
         const rows: string[] = new Array(serialized.length);
@@ -129,22 +150,29 @@ export class Game {
         return rows;
     }
 
+    /**
+     *  Converts the map pieces into a grid of rows and columns
+     *  based on the shape of the pieces and the values of the
+     *  tiles
+     *
+     *  @return number[][] The map pieces converted to a grid of rows & columns
+     */
     serialize(): number[][] {
-        const raw = [];
-        for (let y = 0; y < this.map.height; y++) { // Loop over the full map height
-            raw[y] = new Array(this.map.width).fill(0); // Fill the raw data with zeros
-        }
-        for (let piece of this.map.solid) {
-            for (let y = 0; y < piece.size; y++) {
-                const relY = piece.y + y;
-                for (let x = 0; x < piece.size; x++) {
-                    const relX = piece.x + x;
+        const grid = createEmptyGrid(this.map.width, this.map.height); // Create a grid for the data
+        for (let piece of this.map.solid) { // Loop through all solid pieces
+            for (let y = 0; y < piece.size; y++) { // Loop through the y axis of the piece
+                const relY = piece.y + y; // The tile y axis relative to the grid
+                for (let x = 0; x < piece.size; x++) { // Loop through the x axis of the piece
+                    const relX = piece.x + x; // The tile x axis relative to the grid
+                    // If the tile is out of bounds we dont serialize it
                     if (relY < 0 || relX < 0 || relY >= this.map.height || relX >= this.map.height) continue;
+                    // Get the tile data at the current x and y
                     const tile = piece.tiles[y][x];
-                    if (tile > 0) raw[relY][relX] = tile;
+                    // If the tile has data then place the data onto the grid
+                    if (tile > 0) grid[relY][relX] = tile;
                 }
             }
         }
-        return raw;
+        return grid;
     }
 }

@@ -8,6 +8,14 @@ function deepCopy<O>(object: O): O {
     return JSON.parse(JSON.stringify(object));
 }
 
+function createEmptyGrid(width: number, height: number) {
+    const grid = [];
+    for (let y = 0; y < height; y++) { // Loop over the full map height
+        grid[y] = new Array(width).fill(0); // Fill the grid data with zeros
+    }
+    return grid;
+}
+
 function rotateMatrix(matrix: number[][]): number[][] {
     let output = matrix.map((a) => a.slice());
     const size = output.length;
@@ -56,4 +64,4 @@ export function log(
     }
 }
 
-export {deepArrayCopy, deepCopy, rotateMatrix, random}
+export {deepArrayCopy, deepCopy, rotateMatrix, random, createEmptyGrid}
