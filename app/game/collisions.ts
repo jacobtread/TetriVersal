@@ -29,7 +29,7 @@ export class Collisions {
      */
     async update() {
         this.reset();
-        const active: Piece | null = this.game.active;
+        const active: Piece | null = this.game.activePiece;
         // If there is no active piece ignore everything else
         if (active === null) return;
         const pieces: Piece[] = this.map.solid;

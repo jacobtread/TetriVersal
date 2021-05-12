@@ -14,56 +14,78 @@ import {
     ScoreUpdatePacket,
     StopPacket
 } from "../server/packets";
+
 import chalk from "chalk";
 
 export class Game {
 
-    map: GameMap;
-    server: GameServer;
-    collisions: Collisions;
-    controller: Controller;
-    active: Piece | null;
-    next: number[][] = [];
+    map: GameMap; // The map which contains the solid tiles
+    server: GameServer; // The server (Which this game is on)
+    collisions: Collisions; // The collision handling
+    controller: Controller; // The controller for the active piece
 
-    spawnUpdates: number = 0;
-    score: number = 0;
+    started: boolean = false; // If the game has started or not
 
-    started: boolean = false;
 
+    score: number = 0; // The current game score
+    activePiece: Piece | null; // The active piece or null if there is not one
+    nextPiece: number[][] = []; // The tile structure for the next piece
+    spawnUpdates: number = 0; // How many updates have occurred since the last spawn
+
+    /**
+     *  This class stores the core game data along with
+     *  references which each part uses
+     *
+     *  @param server The current server (for sending packets)
+     */
     constructor(server: GameServer) {
         this.server = server;
         this.map = new GameMap(this);
         this.collisions = new Collisions(this);
         this.controller = new Controller(this);
-        this.active = null;
+        this.activePiece = null;
     }
 
-    nextPiece(): number[][] {
+    _next(): number[][] {
         const id = random(0, TETRIMINIOS.length);
         return deepArrayCopy(TETRIMINIOS[id]);
     }
 
+    /**
+     * This functions spawns a new piece and replaces the next
+     * piece along with all the required networking
+     */
     spawn() {
-        if (this.next.length === 0) {
-            this.next = this.nextPiece();
-        }
-        const tiles = this.next;
+        // If the next piece is empty
+        if (!this.nextPiece.length) this.nextPiece = this._next(); // Assign the next piece
+        const tiles = this.nextPiece; // Get the current next piece
+        // Get the x position using the center of the map
         const x = Math.floor(this.map.width / 2) - Math.floor(tiles.length / 2);
-        this.active = new Piece(x, -tiles.length, tiles);
-        this.server.broadcast(createPacket<ActivePiecePacket>(12, packet => packet.tile = tiles));
-        this.server.broadcast(createPacket<MoveActivePacket>(14, packet => {
+        // Set the y position to the tiles height off of the screen
+        const y = -tiles.length
+        // Create a new piece for the active piece
+        this.activePiece = new Piece(x, y, tiles);
+        // Tell all clients the new active piece
+        this.server.broadcast(createPacket<ActivePiecePacket>(12 /* ID = ActivePiecePacket */, packet => packet.tile = tiles));
+        // Tell all clients the piece position
+        this.server.broadcast(createPacket<MoveActivePacket>(14 /* ID = MoveActivePacket */, packet => {
             packet.x = x;
             packet.y = -tiles.length;
         }));
-        this.next = this.nextPiece();
-        this.server.broadcast(createPacket<NextPiecePacket>(13, packet => packet.tile = this.next))
+        // Generate a new next piece
+        this.nextPiece = this._next();
+        // Tell all clients what the new piece is
+        this.server.broadcast(createPacket<NextPiecePacket>(13 /* ID = NextPiecePacket */, packet => packet.tile = this.nextPiece))
     }
 
+    /**
+     *
+     */
     async update() {
         if (!this.started) return;
         await this.collisions.update();
         await this.controller.update();
-        if (this.active === null) {
+        if (this.activePiece === null) {
             if (this.spawnUpdates >= SPAWN_DELAY) {
                 this.spawnUpdates = 0;
                 this.spawn();
