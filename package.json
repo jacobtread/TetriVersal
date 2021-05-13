@@ -10,8 +10,8 @@
     "compile:windows:32": "npm run build && nexe build/app.js -o bin/TetriVersal-win32.exe --target windows-x86-14.15.3",
     "compile:windows:64": "npm run build && nexe build/app.js -o bin/TetriVersal-win64.exe --target windows-x64-14.15.3",
     "compile:linux": "npm run compile:linux:64",
-    "compile:linux:32": "npm run build && nexe build/app.js -o bin/TetriVersal-linux32.exe --target linux-x86-14.15.3",
-    "compile:linux:64": "npm run build && nexe build/app.js -o bin/TetriVersal-linux64.exe --target linux-x64-14.15.3"
+    "compile:linux:32": "npm run build && nexe build/app.js -o bin/TetriVersal-linux32 --target linux-x86-14.15.3",
+    "compile:linux:64": "npm run build && nexe build/app.js -o bin/TetriVersal-linux64 --target linux-x64-14.15.3"
   },
   "author": "Jacobtread <jacobtread@gmail.com>",
   "license": "MIT",
