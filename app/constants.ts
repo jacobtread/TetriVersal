@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 // The tiles structures of each tetrimino
 const TETRIMINIOS = [
     [

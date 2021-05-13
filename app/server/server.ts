@@ -8,6 +8,8 @@ import {createPacket, MapSizePacket, PlayPacket, TimeTillStartPacket} from "./pa
 import {log} from "../utils";
 import chalk from "chalk";
 
+import {networkInterfaces} from "os";
+
 class GameServer {
     connections: Connection[]; // The current connections
     server: WebSocket.Server; // The web socket server instance
@@ -20,8 +22,27 @@ class GameServer {
             port: PORT,
             host: '0.0.0.0'
         });
+        this.server.on('listening', () => {
+            const interfaces = networkInterfaces();
+            log('ADDRESS', 'POSSIBLE ADDRESSES', chalk.bgYellow.black);
+            for (const name in interfaces) {
+                if (!interfaces.hasOwnProperty(name) || name.indexOf("(WSL)") >= 0 || name.indexOf('Loopback') >= 0 || name.indexOf('Pseudo-Interface') >= 0) continue;
+                const values: any = interfaces[name];
+                for (let value of values) {
+                    const family = value.family;
+                    if (family === 'IPv4') {
+                        const address = value.address;
+                        log('ADDRESS', name + ' : ' + address, chalk.bgGreen.black)
+                    }
+                }
+            }
+            let addr = this.server.address();
+            if (typeof addr !== 'string') {
+                addr = addr.address;
+            }
+            log('OPEN', `AWAITING CONNECTIONS ON ws://${addr}:${PORT}`, chalk.bgGreen.black)
+        });
         // When the server is listening print a message to the console
-        this.server.on('listening', () => log('OPEN', `AWAITING CONNECTIONS ON ws://localhost:${PORT}`, chalk.bgGreen.black));
         // When a connection is received call the connection function
         this.server.on('connection', (session: WebSocket) => this.connection(session));
     }
