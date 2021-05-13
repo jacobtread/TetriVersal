@@ -50,11 +50,11 @@ client.on('open', () => {
     }, clientPackets));
 });
 
-client.on('message', (message: Data) => {
+client.on('message', async (message: Data) => {
     const data = message as string;
     try {
         const packet: BasePacket = parsePacket(data, serverPackets);
-        processPacket(packet);
+        await processPacket(packet);
     } catch (e) {
         if (e instanceof InvalidPacketException) {
             log('INVALID PACKET', message, chalk.bgRed.black);
@@ -67,7 +67,7 @@ let startingIn = 0;
 let width = 0;
 let height = 0;
 
-function processPacket(packet: BasePacket) {
+async function processPacket(packet: BasePacket) {
     const id = packet.id;
     if (id === 0) {
         // TODO: Server is still alive;
@@ -141,6 +141,15 @@ function processPacket(packet: BasePacket) {
             grid[y] = new Array(width).fill(0); // Fill the raw data with zeros
         }
     }
+
+    if (id === 17 || id === 14 || id === 15) {
+        const data = await render();
+        console.clear();
+        gridify(data);
+        if(isControlling) {
+            log('CONTROL', 'I AM IN CONTROL' , chalk.bgYellow.black)
+        }
+    }
 }
 
 function parseBulkData(lines: string[]): number[][] {
@@ -187,16 +196,14 @@ console.clear = () => console.log('\x1Bc');
 
 // RENDER
 setInterval(async () => {
-    console.clear();
     if (state === 3) {
+        console.clear();
         console.log('GAME LOST');
         log('GAME', 'WAITING TO START', chalk.bgRed.black)
     } else if (state == 1) {
-        gridify(await render());
-        if(isControlling) {
-            log('CONTROL', 'I AM IN CONTROL' , chalk.bgYellow.black)
-        }
+
     } else if (state == 2) {
+        console.clear();
         log('GAME', 'WAITING TO START', chalk.bgYellow.black)
     }
 
