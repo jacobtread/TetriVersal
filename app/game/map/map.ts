@@ -3,11 +3,19 @@ import {Game} from "../game";
 
 export class GameMap {
 
-    game: Game;
-    width: number;
-    height: number;
-    solid: Piece[];
+    game: Game; // The game instance
+    width: number; // The map width
+    height: number; // The map height
+    solid: Piece[]; // The solid pieces in the world
 
+    /**
+     * This class contains the data and logic for the map and
+     * the tiles in it (removing rows)
+     *
+     * @param game The game instance
+     * @param width The width of the game world
+     * @param height The height of the game world
+     */
     constructor(game: Game, width: number = 12, height: number = 22) {
         this.game = game;
         this.width = width;
@@ -15,18 +23,24 @@ export class GameMap {
         this.solid = [];
     }
 
-    async collectFilled() {
+    /**
+     *  This functions checks the map for any full rows and
+     *  doest the score and removing associated to it
+     */
+    async cleared() {
+        // Create an empty row scores array
+        // Each row is given a score 0 = None and if it matches the width then its full
         const scores: number[] = new Array(this.height).fill(0);
-        for (let piece of this.solid) {
-            for (let y = 0; y < piece.size; y++) {
+        for (let piece of this.solid) { // Loop through all the solid pieces
+            for (let y = 0; y < piece.size; y++) { // Loop through the piece y axis
                 const gridY: number = piece.y + y; // The position of this piece relative to the grid on the y axis
                 let total: number = 0; // The total number of data filled columns on this row
-                for (let x = 0; x < piece.size; x++) {
-                    const tile = piece.tiles[y][x];
+                for (let x = 0; x < piece.size; x++) { // Loop through the piece x axis
+                    const tile = piece.tiles[y][x]; // Get the tile on the x and y
                     // If the tile has data
                     if (tile > 0) total++;
                 }
-                scores[gridY] += total;
+                scores[gridY] += total; // Add the total to this rows score
             }
         }
         const cleared: number[] = []
@@ -48,11 +62,11 @@ export class GameMap {
             }
         }
         for (let y of cleared) {
-            await this.removeFilled(y);
+            await this.removeCleared(y);
         }
     }
 
-    async removeFilled(y: number) {
+    async removeCleared(y: number) {
         for (let piece of this.solid) {
             if (y >= piece.y) { // If the removed line is after the start of this piece
                 if (y <= piece.y + piece.size - 1) { // If its on the same row as whats being removed

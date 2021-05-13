@@ -43,7 +43,7 @@ export class Controller {
                 const solid: Piece = active.freeze();
                 this.map.solid.push(solid);
                 this.game.activePiece = null;
-                await this.map.collectFilled();
+                await this.map.cleared();
                 this.game.bulkUpdate();
                 if (solid.atLimit()) {
                     this.game.gameOver();

@@ -26,12 +26,15 @@ class GameServer {
             const interfaces = networkInterfaces();
             log('ADDRESS', 'POSSIBLE ADDRESSES', chalk.bgYellow.black);
             for (const name in interfaces) {
+                // Make sure its a valid interface and not for WSL or a loopback/pseudo interface
                 if (!interfaces.hasOwnProperty(name) || name.indexOf("(WSL)") >= 0 || name.indexOf('Loopback') >= 0 || name.indexOf('Pseudo-Interface') >= 0) continue;
+                // Get its children
                 const values: any = interfaces[name];
                 for (let value of values) {
                     const family = value.family;
-                    if (family === 'IPv4') {
+                    if (family === 'IPv4') { // If its IPv4
                         const address = value.address;
+                        // Log the address
                         log('ADDRESS', name + ' : ' + address, chalk.bgGreen.black)
                     }
                 }
