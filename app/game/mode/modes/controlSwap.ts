@@ -12,7 +12,7 @@ class ControlSwap extends GameMode {
     nextChangeIn: number = 0;
     changeUpdates: number = 0;
 
-    async start(): Promise<void> {
+    async start() {
         this.swap();
     }
 

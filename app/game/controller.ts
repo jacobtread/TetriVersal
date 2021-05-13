@@ -10,11 +10,14 @@ export class Controller {
     game: Game;
     map: GameMap;
 
-    moveLeft: boolean = false;
-    moveRight: boolean = false;
-    moveDown: boolean = false;
-    moveRotate: boolean = false;
+    moveLeft: boolean = false; // Whether or not we need to move left
+    moveRight: boolean = false; // Whether or not we need to move right
+    moveDown: boolean = false; // Whether or not we need to move down
+    moveRotate: boolean = false; // Whether or not we need to rotate
 
+    /**
+     *  This class contains
+     */
     constructor(game: Game) {
         this.game = game;
         this.map = game.map;
