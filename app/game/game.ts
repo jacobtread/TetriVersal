@@ -51,8 +51,8 @@ export class Game {
     }
 
     _next(): number[][] {
-        const id = random(0, TETRIMINIOS.length);
-        return deepCopy(TETRIMINIOS[1]);
+        const id = random(0, TETRIMINIOS.length - 1);
+        return deepCopy(TETRIMINIOS[id]);
     }
 
     /**
