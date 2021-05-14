@@ -42,6 +42,17 @@ export class Piece {
         return false; // Otherwise false
     }
 
+    containsAny(y: number) {
+        for (let x = 0; x < this.size; x++) {
+            if (this.contains(x, y)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+
     /**
      * Checks to see if any portion of this piece is
      * touching y level 0 aka the player has lost
@@ -88,6 +99,22 @@ export class Piece {
             }
         }
         return false;
+    }
+
+    toString() {
+        return `${this.x}:${this.y}:${this.tiles}:${this.size}:${this.solid}`;
+    }
+
+    height(): number {
+        for (let y = this.size - 1; y > 0; y--) {
+            for (let x = 0; x < this.size; x++) {
+                const tile: number = this.tiles[y][x];
+                if (tile > 0) {
+                    return y;
+                }
+            }
+        }
+        return 0;
     }
 }
 

@@ -16,11 +16,22 @@ export class Controller {
     moveRotate: boolean = false; // Whether or not we need to rotate
 
     /**
-     *  This class contains
+     *  This class contains logic for manipulating the active
+     *  piece based on user input
      */
     constructor(game: Game) {
         this.game = game;
         this.map = game.map;
+    }
+
+    /**
+     *  This function resets all pressed controls
+     */
+    reset() {
+        this.moveLeft = false;
+        this.moveRight = false;
+        this.moveDown = false;
+        this.moveRotate = false;
     }
 
     updateServer() {

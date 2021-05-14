@@ -1,5 +1,6 @@
 import {Piece} from "./piece";
 import {Game} from "../game";
+import {createPacket, RowClearedPacket} from "../../server/packets";
 
 export class GameMap {
 
@@ -63,9 +64,17 @@ export class GameMap {
         }
         for (let y of cleared) {
             await this.removeCleared(y);
+            await this.moveDown(y);
+            this.game.server.broadcast(createPacket<RowClearedPacket>(18, packet => packet.y = y));
         }
     }
 
+    /**
+     *  Sets all the tiles of the specified row to zero
+     *  then removes any empty shapes
+     *
+     *  @param y The y level of the row
+     */
     async removeCleared(y: number) {
         for (let piece of this.solid) {
             if (y >= piece.y) { // If the removed line is after the start of this piece
@@ -73,12 +82,27 @@ export class GameMap {
                     const relY = y - piece.y;
                     piece.tiles[relY].fill(0); // Replace all data with zeros
                 }
-                piece.y++; // Move the piece down to fill the gap
             }
         }
         this.solid = this.solid.filter((piece: Piece) => piece.isActive())
     }
 
+    /**
+     *  Uses the collision system to move all rows
+     *  down that before the provided y level
+     *
+     *  @param y The y level to move all down before
+     */
+    async moveDown(y: number) {
+        for (let piece of this.solid) { // Loop through all the pieces
+            if (piece.y + piece.height() <= y) { // If its before the provided line
+                piece.y++;
+                while (!this.game.collisions.isObstructed(piece.tiles, piece.x, piece.y + 1)) {
+                    piece.y++;
+                }
+            }
+        }
+    }
 
 
 }

@@ -52,7 +52,7 @@ export class Game {
 
     _next(): number[][] {
         const id = random(0, TETRIMINIOS.length);
-        return deepCopy(TETRIMINIOS[id]);
+        return deepCopy(TETRIMINIOS[1]);
     }
 
     /**
@@ -93,6 +93,7 @@ export class Game {
         if (this.activePiece === null) {
             if (this.spawnUpdates >= SPAWN_DELAY) {
                 this.spawnUpdates = 0;
+                this.controller.reset();
                 this.spawn();
             } else {
                 this.spawnUpdates++;

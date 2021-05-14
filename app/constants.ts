@@ -35,7 +35,7 @@ const TETRIMINIOS = [
 ];
 
 // The delay between each update
-const UPDATE_DELAY: number = parseInt(process.env.UPDATE_DELAY ?? '200');
+const UPDATE_DELAY: number = parseInt(process.env.UPDATE_DELAY ?? '50');
 // The delay before keep alive connections will die
 const DEATH_TIMEOUT: number = parseInt(process.env.DEATH_TIMEOUT ?? '1000');
 // SPAWN_DELAY * PLACE_DELAY = Theoretical spawn delay (ignoring system lag)

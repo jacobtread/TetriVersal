@@ -65,6 +65,7 @@ client.on('message', async (message: Data) => {
 let state = 0;
 let startingIn = 0;
 let width = 0;
+let score =0;
 let height = 0;
 
 async function processPacket(packet: BasePacket) {
@@ -130,6 +131,7 @@ async function processPacket(packet: BasePacket) {
         }
     } else if (id === 16) {
         const scoreUpdate: ScoreUpdatePacket = packet as ScoreUpdatePacket;
+        score = scoreUpdate.score;
         log('SCORE', scoreUpdate.score, chalk.bgYellow.black, chalk.yellow);
     } else if (id === 17) {
         const mapSize: MapSizePacket = packet as MapSizePacket;
@@ -149,6 +151,7 @@ async function processPacket(packet: BasePacket) {
         if(isControlling) {
             log('CONTROL', 'I AM IN CONTROL' , chalk.bgYellow.black)
         }
+        log('SCORE', score, chalk.bgYellow.black)
     }
 }
 
