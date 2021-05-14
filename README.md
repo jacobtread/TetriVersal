@@ -1,10 +1,10 @@
 ![Tetri-Versal](https://raw.githubusercontent.com/jacobtread/TetriVersal/main/logo.png)
 
 #  🤖 Tetri Versal 
-
 ![NodeJs](https://img.shields.io/badge/Powered%20By-NodeJS-68A063?style=for-the-badge)
 ![NOT PRODUCTION READY](https://img.shields.io/badge/Not%20Ready%20For%20Production-ef4550?style=for-the-badge)
-
+![LINES OF CODE](https://img.shields.io/tokei/lines/github/jacobtread/TetriVersal?style=for-the-badge)
+![LICENSE](https://img.shields.io/github/license/jacobtread/TetriVersal?style=for-the-badge)
 ####  This is the server portion of the code (most of the logic ‍🏭)
 
 A small game project idea for a multiplayer Tetri style game where the controls rotate between the players developed
@@ -36,6 +36,11 @@ This game is currently in an unfinished state
 - "Control Swap" - The controls for the game are randomly swapped between the players and they must work 
 together to achieve a win
   
+### 🧠 Other Ideas
+
+- Powers / Bonuses (e.g. The users game slows down while everyone else's speeds up)
+- Online multiplayer? instead of lan?
+  
 ### 👨‍🎓 Completed
 
 - [x] Basic Server Implementation
@@ -43,16 +48,16 @@ together to achieve a win
 - [x] Basic game system
 - [x] Testing web socket client
 - [x] Text based testing client
-
-### 👀 TODO
-
 - [x] Fix bugs in collisions system
 - [x] Clean up the code
-- [ ] Get a websocket connection up and running with the Unity game
-- [ ] Implement the world into the server
+- [x] Get a websocket connection up and running with the rust game
+- [x] Implement the world into the server
+- [x] Re-write Packet system
+- [x] Runnable server
+
+### 👀 TODO
 - [ ] Documentation
   - Kind of making progress on this, but it will just end up happening as I go
   or just when I get bored
-- [x] Re-write Packet system 
 
 Code go brrrr 🧠
