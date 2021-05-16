@@ -30,14 +30,14 @@ class GameMode {
      *  Called before the map data is transmitted
      *  to the client
      */
-    init() {
+    async init() {
 
     }
 
     /**
      *  Called when the game starts
      */
-    start() {
+    async start() {
 
     }
 
@@ -51,21 +51,21 @@ class GameMode {
     /**
      *  Called when the game is stopped
      */
-    stop() {
+    async stop() {
 
     }
 
     /**
      *  Called when input is received
      */
-    input(connection: Connection, input: string) {
+    async input(connection: Connection, input: string) {
 
     }
 
     /**
      *  Called when a connection is closed
      */
-    close(connection: Connection, reason: string | null = null) {
+    async close(connection: Connection, reason: string | null = null) {
 
     }
 

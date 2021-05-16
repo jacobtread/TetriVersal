@@ -145,12 +145,14 @@ class GameServer {
      *  @param packet The packet of data to send
      *  @param exclude The function for choosing which clients are excluded
      */
-    broadcast(packet: any, exclude: ((connection: Connection) => boolean) = _ => false): void {
-        for (let connection of this.active()) { // Loop all active connections
-            if (!exclude(connection)) { // Check if its excluding
-                connection.send(packet); // Send the packet
+    async broadcast(packet: any, exclude: ((connection: Connection) => boolean) = _ => false): Promise<void> {
+        const promises: Promise<void>[] = [];
+        for (let connection of this.connections) {
+            if (connection.name !== null && !exclude(connection)) {
+                promises.push(connection.send(packet));
             }
         }
+        await Promise.allSettled(promises);
     }
 
     /**

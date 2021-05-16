@@ -38,9 +38,11 @@ const TETRIMINIOS = [
 const UPDATE_DELAY: number = parseInt(process.env.UPDATE_DELAY ?? '50');
 // The delay before keep alive connections will die
 const DEATH_TIMEOUT: number = parseInt(process.env.DEATH_TIMEOUT ?? '1000');
-// SPAWN_DELAY * PLACE_DELAY = Theoretical spawn delay (ignoring system lag)
+// MOVE_DELAY * UPDATE_DELAY = Theoretical spawn delay (ignoring system lag)
+const MOVE_DELAY: number = parseInt(process.env.MOVE_DELAY ?? '2');
+// SPAWN_DELAY * UPDATE_DELAY = Theoretical spawn delay (ignoring system lag)
 const SPAWN_DELAY: number = parseInt(process.env.SPAWN_DELAY ?? '3');
-// PLACE_DELAY * PLACE_DELAY = Theoretical place delay (ignoring system lag)
+// PLACE_DELAY * UPDATE_DELAY = Theoretical place delay (ignoring system lag)
 const PLACE_DELAY: number = parseInt(process.env.PLACE_DELAY ?? '1.5');
 // The port the server runs on
 const PORT: number = parseInt(process.env.PORT ?? '80');
@@ -64,4 +66,5 @@ export {
     TIME_TILL_START,
     CONTROL_SWAP_MIN,
     CONTROL_SWAP_MAX,
+    MOVE_DELAY
 }

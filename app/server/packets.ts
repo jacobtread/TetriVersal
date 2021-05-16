@@ -155,6 +155,15 @@ interface RowClearedPacket extends BasePacket {
     y: number;
 }
 
+interface GameModeRef {
+    id: number;
+    name: string;
+}
+
+interface GameModesPacket extends BasePacket {
+    modes: GameModeRef[];
+}
+
 const serverPackets: PacketRegister = {
     0: {} as KeepAlivePacket,
     1: {uuid: ''} as JoinResponsePacket,

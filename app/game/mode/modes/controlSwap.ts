@@ -32,7 +32,7 @@ class ControlSwap extends GameMode {
         this.controller = null;
     }
 
-    input(connection: Connection, input: string) {
+    async input(connection: Connection, input: string) {
         if (this.controller === null || this.game === null || !this.game.started) return;
         if (connection.uuid === this.controller.uuid) {
             if (input === 'left') {
@@ -66,7 +66,7 @@ class ControlSwap extends GameMode {
         }), c => c.uuid === connection.uuid);
     }
 
-    close(connection: Connection, reason: string | null = null) {
+    async close(connection: Connection, reason: string | null = null) {
         if (this.controller !== null) {
             if (this.controller.uuid === connection.uuid) {
                 this.swap();

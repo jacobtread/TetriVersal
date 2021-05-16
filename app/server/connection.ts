@@ -2,7 +2,8 @@ import * as WebSocket from "ws";
 import {Data} from "ws";
 import {DEATH_TIMEOUT} from "../constants";
 import {
-    BasePacket, CInputPacket,
+    BasePacket,
+    CInputPacket,
     createPacket,
     DisconnectPacket,
     InvalidPacketException,
@@ -10,7 +11,6 @@ import {
     JoinRequestPacket,
     JoinResponsePacket,
     KeepAlivePacket,
-    MoveActivePacket,
     parsePacket,
     PlayerJoinPacket,
     PlayerLeavePacket
@@ -25,7 +25,6 @@ class Connection {
     session: WebSocket;
     uuid: string;
     name: string | null;
-
     deathTimeout: NodeJS.Timeout | undefined;
 
 
@@ -49,12 +48,17 @@ class Connection {
         }
     }
 
-    send(packet: any) {
-        const data = JSON.stringify(packet);
-        this.session.send(data, (err: Error | undefined) => {
-            if (err) {
-                this.log('SEND FAIL', err.message, chalk.bgRed.black)
-            }
+    async send(packet: any): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            const data = JSON.stringify(packet);
+            this.session.send(data, (err: Error | undefined) => {
+                if (err) {
+                    this.log('SEND FAIL', err.message, chalk.bgRed.black);
+                    reject();
+                } else {
+                    resolve();
+                }
+            });
         });
     }
 
@@ -82,7 +86,7 @@ class Connection {
         } else if (id === 2) {
             const input: CInputPacket = packet as CInputPacket;
             this.server.input(this, input.key);
-        } else if(id === 3) {
+        } else if (id === 3) {
             const disconnect: DisconnectPacket = packet as DisconnectPacket;
             this.disconnect(disconnect.reason);
         }
