@@ -168,6 +168,13 @@ interface VotePacket extends BasePacket {
     option: number;
 }
 
+interface MovingPiecePacket extends BasePacket {
+    uuid: string;
+    tile: number[][];
+    x: number;
+    y: number;
+}
+
 const serverPackets: PacketRegister = {
     0: {} as KeepAlivePacket,
     1: {uuid: ''} as JoinResponsePacket,
@@ -187,7 +194,8 @@ const serverPackets: PacketRegister = {
     15: {} as RotateActivePacket,
     16: {score: 0} as ScoreUpdatePacket,
     17: {width: 0, height: 0} as MapSizePacket,
-    18: {y: 0} as RowClearedPacket
+    18: {y: 0} as RowClearedPacket,
+    19: {uuid: '', tile: [[0]], x: 0, y: 0} as MovingPiecePacket
 }
 
 const clientPackets: PacketRegister = {
@@ -224,5 +232,6 @@ export {
     NextPiecePacket,
     ScoreUpdatePacket,
     MapSizePacket,
-    RowClearedPacket
+    RowClearedPacket,
+    MovingPiecePacket
 }

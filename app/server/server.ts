@@ -69,7 +69,8 @@ class GameServer {
      *  @param connection The connection that joined
      */
     join(connection: Connection): void {
-        // TODO: Extra logic when players join the server
+        if (this.game === null) return;
+        this.game.gameMode.join(connection).then();
     }
 
     /**
@@ -81,7 +82,7 @@ class GameServer {
      */
     input(connection: Connection, input: string): void {
         if (this.game === null || !this.game.started) return;
-        this.game.gameMode.input(connection, input)
+        this.game.gameMode.input(connection, input).then();
     }
 
     /**
@@ -122,6 +123,7 @@ class GameServer {
                     // Broadcast the play packet to all the clients
                     this.broadcast(createPacket<PlayPacket>(6 /* ID = PlayPacket */))
                 ]).then();
+                await this.game.gameMode.start();
                 this.game.started = true; // Set the game to started
                 log('GAME', 'STARTED', chalk.bgGreen.black);
             }

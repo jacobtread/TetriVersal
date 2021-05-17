@@ -4,6 +4,7 @@ import {log, random} from "../../../utils";
 import {Connection} from "../../../server/connection";
 import {
     ActivePiecePacket,
+    BasePacket,
     ControlPacket,
     ControlsPacket,
     createPacket,
@@ -64,7 +65,11 @@ class ControlSwap extends GameMode {
     }
 
     async init(): Promise<void> {
-        this._controller = new Controller(this.game, null);
+        this._controller = new Controller(this.game, {
+            pipe: async <P extends BasePacket>(packet: P): Promise<void> => {
+                await this.game.server.broadcast(packet);
+            }
+        }, null);
         const map: GameMap = this.game.map;
         map.width = 12;
         map.height = 22;

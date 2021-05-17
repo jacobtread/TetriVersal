@@ -6,6 +6,7 @@ class GameMode {
 
     id: number;
     server: GameServer;
+    depSerial: boolean = false;
 
     /**
      * This class is implemented to include game
@@ -38,6 +39,13 @@ class GameMode {
     }
 
     /**
+     *  Called when a player joins the game
+     */
+    async join(connection: Connection): Promise<void> {
+
+    }
+
+    /**
      *  Called when the game starts
      */
     async start(): Promise<void> {
@@ -45,8 +53,8 @@ class GameMode {
     }
 
     /**
-    *   Called when the game is updated
-    */
+     *   Called when the game is updated
+     */
     async update(): Promise<void> {
 
     }
@@ -79,6 +87,10 @@ class GameMode {
 
     }
 
+    /*
+    *  Called when the grid is being serialized to allow
+    *  it to be modified before its sent
+    */
     async insertTiles(grid: number[][]) {
 
     }

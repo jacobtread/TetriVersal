@@ -17,6 +17,7 @@ import {
     KeepAlivePacket,
     MapSizePacket,
     MoveActivePacket,
+    MovingPiecePacket,
     NextPiecePacket,
     parsePacket,
     PlayerJoinPacket,
@@ -65,8 +66,9 @@ client.on('message', async (message: Data) => {
 let state = 0;
 let startingIn = 0;
 let width = 0;
-let score =0;
+let score = 0;
 let height = 0;
+const movingPieces: any = {};
 
 async function processPacket(packet: BasePacket) {
     const id = packet.id;
@@ -142,14 +144,24 @@ async function processPacket(packet: BasePacket) {
         for (let y = 0; y < height; y++) { // Loop over the full map height
             grid[y] = new Array(width).fill(0); // Fill the raw data with zeros
         }
+    } else if (id === 19) {
+        const movingPiece: MovingPiecePacket = packet as MovingPiecePacket;
+        if (!movingPieces.hasOwnProperty(movingPiece.uuid)) {
+            movingPieces[movingPiece.uuid] = new Piece(movingPiece.x, movingPiece.y, movingPiece.tile);
+        } else {
+            const piece = movingPieces[movingPiece.uuid];
+            piece.x = movingPiece.x;
+            piece.y = movingPiece.y;
+            piece.tiles = movingPiece.tile;
+        }
     }
 
     if (id === 17 || id === 14 || id === 15) {
         const data = await render();
         console.clear();
         gridify(data);
-        if(isControlling) {
-            log('CONTROL', 'I AM IN CONTROL' , chalk.bgYellow.black)
+        if (isControlling) {
+            log('CONTROL', 'I AM IN CONTROL', chalk.bgYellow.black)
         }
         log('SCORE', score, chalk.bgYellow.black)
     }
@@ -188,6 +200,22 @@ async function render(): Promise<number[][]> {
                 const tile = tiles[y][x];
                 if (tile > 0 && relX >= 0 && relX < width && relY < height && relY >= 0) {
                     data[relY][relX] = tile;
+                }
+            }
+        }
+    }
+    for (let key in movingPieces) {
+        if(movingPieces.hasOwnProperty(key)) {
+            const piece: Piece = movingPieces[key];
+            const tiles = piece.tiles;
+            for (let y = 0; y < tiles.length; y++) {
+                const relY = piece.y + y;
+                for (let x = 0; x < tiles.length; x++) {
+                    const relX = piece.x + x;
+                    const tile = tiles[y][x];
+                    if (tile > 0 && relX >= 0 && relX < width && relY < height && relY >= 0) {
+                        data[relY][relX] = tile;
+                    }
                 }
             }
         }

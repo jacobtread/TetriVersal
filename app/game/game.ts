@@ -5,6 +5,8 @@ import {GameServer} from "../server/server";
 import {BulkMapPacket, createPacket, StopPacket} from "../server/packets";
 import chalk from "chalk";
 import {GameMode} from "./mode/gameMode";
+import {Connection} from "../server/connection";
+import {Teamwork} from "./mode/modes/teamwork";
 import {ControlSwap} from "./mode/modes/controlSwap";
 
 export class Game {
@@ -54,10 +56,10 @@ export class Game {
      *  This function creates and sends a bulk update packet
      *  which contains all the map data
      */
-    bulkUpdate() {
+    bulkUpdate(exclude: (connection: Connection) => boolean = _ => false) {
         this.serializedString().then((serialized: string[]) => { // Generate the serialized data
             // Broadcast the packet to all the clients
-            this.server.broadcast(createPacket<BulkMapPacket>(11 /* ID = BulkMapPacket */, packet => packet.lines = serialized)).then();
+            this.server.broadcast(createPacket<BulkMapPacket>(11 /* ID = BulkMapPacket */, packet => packet.lines = serialized), exclude).then();
             // Pretty server logging of whats just happened
             log('BULK UPDATE', 'SENT', chalk.bgGreen.black);
         });
