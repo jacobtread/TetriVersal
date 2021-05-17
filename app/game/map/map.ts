@@ -85,12 +85,45 @@ export class GameMap {
         for (let piece of this.solid) { // Loop through all the pieces
             if (piece.y + piece.height() <= y) { // If its before the provided line
                 piece.y++;
-                while (!this.game.collisions.isObstructed(piece.tiles, piece.x, piece.y + 1)) {
+                while (!this.isObstructed(piece.tiles, piece.x, piece.y + 1)) {
                     piece.y++;
                 }
             }
         }
     }
 
+    /**
+     *  Checks if a specific set of tiles will be
+     *  obstructed or not if placed at the specified
+     *  coordinates (Used to check if rotating the shape
+     *  will effect other tiles)
+     *
+     *  @return boolean Whether or not its obstructed
+     */
+    isObstructed(tiles: number[][], atX: number, atY: number): boolean {
+        const size = tiles.length;
+        const pieces: Piece[] = this.solid; // The solid pieces on the map
+        for (let y = 0; y < size; y++) {
+            const gridY = atY + y; // The position relative to the grid on the y axis
+            for (let x = 0; x < size; x++) {
+                const gridX = atX + x; // The position relative to the grid on the x axis
+                const tile = tiles[y][x]; // Get the current tile
+                if (tile > 0) { // If the tile contains data
+                    for (let piece of pieces) { // For all the placed pieces
+                        if (gridX < 0 || gridX >= this.width) { // Rotation takes piece outside of the map
+                            return true;
+                        }
+                        if (gridY >= this.height) { // Rotation takes piece outside of the map
+                            return true;
+                        }
+                        if (piece.contains(gridX, gridY)) { // If there is data at these points
+                            return true; // The tiles are obstructed
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
 
 }

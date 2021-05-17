@@ -5,16 +5,16 @@ import {Piece} from "./map/piece";
 
 export class Collisions {
 
-    game: Game
     map: GameMap
+    piece: Piece | null
     collidedBottom: boolean = false;
     collidedLeft: boolean = false;
     collidedRight: boolean = false;
     groundUpdates: number = 0;
 
-    constructor(game: Game) {
-        this.game = game;
+    constructor(game: Game, piece: Piece | null) {
         this.map = game.map;
+        this.piece = piece;
     }
 
     reset() {
@@ -29,17 +29,17 @@ export class Collisions {
      */
     async update() {
         this.reset();
-        const active: Piece | null = this.game.activePiece;
+        const piece: Piece | null = this.piece;
         // If there is no active piece ignore everything else
-        if (active === null) return;
+        if (piece === null) return;
         const pieces: Piece[] = this.map.solid;
-        const size: number = active.size;
+        const size: number = piece.size;
         for (let y = 0; y < size; y++) {
-            const gridY: number = active.y + y;
+            const gridY: number = piece.y + y;
             const bottom: number = gridY + 1;
             for (let x = 0; x < size; x++) {
-                const gridX: number = active.x + x;
-                const tile: number = active.tiles[y][x];
+                const gridX: number = piece.x + x;
+                const tile: number = piece.tiles[y][x];
                 if (tile > 0) {
                     const left: number = gridX - 1;
                     if (this.contains(pieces, left, gridY) /* Left tile contains data */
@@ -63,40 +63,6 @@ export class Collisions {
         } else { // Otherwise
             this.groundUpdates = 0; // Reset the ground updates counter
         }
-    }
-
-    /**
-     *  Checks if a specific set of tiles will be
-     *  obstructed or not if placed at the specified
-     *  coordinates (Used to check if rotating the shape
-     *  will effect other tiles)
-     *
-     *  @return boolean Whether or not its obstructed
-     */
-    isObstructed(tiles: number[][], atX: number, atY: number): boolean {
-        const size = tiles.length;
-        const pieces: Piece[] = this.map.solid; // The solid pieces on the map
-        for (let y = 0; y < size; y++) {
-            const gridY = atY + y; // The position relative to the grid on the y axis
-            for (let x = 0; x < size; x++) {
-                const gridX = atX + x; // The position relative to the grid on the x axis
-                const tile = tiles[y][x]; // Get the current tile
-                if (tile > 0) { // If the tile contains data
-                    for (let piece of pieces) { // For all the placed pieces
-                        if (gridX < 0 || gridX >= this.map.width) { // Rotation takes piece outside of the map
-                            return true;
-                        }
-                        if (gridY >= this.map.height) { // Rotation takes piece outside of the map
-                            return true;
-                        }
-                        if (piece.contains(gridX, gridY)) { // If there is data at these points
-                            return true; // The tiles are obstructed
-                        }
-                    }
-                }
-            }
-        }
-        return false;
     }
 
     /**

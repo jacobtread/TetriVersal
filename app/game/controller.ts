@@ -9,21 +9,33 @@ export class Controller {
 
     game: Game;
     map: GameMap;
-
+    collisions: Collisions;
     moveLeft: boolean = false; // Whether or not we need to move left
     moveRight: boolean = false; // Whether or not we need to move right
     moveDown: boolean = false; // Whether or not we need to move down
     moveRotate: boolean = false; // Whether or not we need to rotate
-
     moveUpdates: number = 0;
 
     /**
      *  This class contains logic for manipulating the active
      *  piece based on user input
      */
-    constructor(game: Game) {
+    constructor(game: Game, piece: Piece | null) {
+        this.collisions = new Collisions(game, piece);
         this.game = game;
         this.map = game.map;
+        this._piece = piece;
+    }
+
+    private _piece: Piece | null = null;
+
+    get piece(): Piece | null {
+        return this._piece;
+    }
+
+    set piece(piece: Piece | null) {
+        this._piece = piece;
+        this.collisions.piece = piece;
     }
 
     /**
@@ -37,25 +49,25 @@ export class Controller {
     }
 
     async updateServer() {
-        const active: Piece | null = this.game.activePiece;
-        if (active == null) return;
-        await this.game.server.broadcast(createPacket<MoveActivePacket>(14, packet => {
-            packet.x = active.x;
-            packet.y = active.y;
-        }));
+        if (this.piece == null) return;
+        this.game.server.broadcast(createPacket<MoveActivePacket>(14, packet => {
+            if (this.piece == null) return;
+            packet.x = this.piece.x;
+            packet.y = this.piece.y;
+        })).then();
     }
 
     async update() {
-        const active: Piece | null = this.game.activePiece;
+        await this.collisions.update();
+        const piece = this.piece;
         // If there is no active piece ignore everything else
-        if (active === null) return;
-        const collisions: Collisions = this.game.collisions; // Get the current collisions
-        if (collisions.collidedBottom) {
-            if (collisions.groundUpdates >= PLACE_DELAY) {
-                collisions.groundUpdates = 0;
-                const solid: Piece = active.freeze();
+        if (piece === null) return;
+        if (this.collisions.collidedBottom) {
+            if (this.collisions.groundUpdates >= PLACE_DELAY) {
+                this.collisions.groundUpdates = 0;
+                const solid: Piece = piece.freeze();
                 this.map.solid.push(solid);
-                this.game.activePiece = null;
+                this.piece = null;
                 await this.map.cleared();
                 this.game.bulkUpdate();
                 if (solid.atLimit()) {
@@ -65,29 +77,29 @@ export class Controller {
             }
         } else {
             if (this.moveRotate) {
-                const rotatedPiece: Piece = active.rotate();
-                if (!collisions.isObstructed(rotatedPiece.tiles, active.x, active.y)) {
-                    this.game.activePiece = rotatedPiece;
+                const rotatedPiece: Piece = piece.rotate();
+                if (!this.map.isObstructed(rotatedPiece.tiles, piece.x, piece.y)) {
+                    this.piece = rotatedPiece;
                     await this.game.server.broadcast(createPacket<RotateActivePacket>(15))
                 }
                 this.moveRotate = false;
             }
             if (this.moveUpdates >= MOVE_DELAY) {
                 this.moveUpdates = 0;
-                collisions.groundUpdates = 0;
+                this.collisions.groundUpdates = 0;
                 const distance: number = this.moveDown ? 4 : 2;
                 for (let y = 0; y < distance; y++) {
                     // If we have no active piece break out of the loop
-                    if (this.game.activePiece === null) break;
-                    await collisions.update(); // Update the collisions every move
+                    if (piece === null) break;
+                    await this.collisions.update(); // Update the collisions every move
                     // If out bath is obscured break the expression
-                    if (collisions.isObstructed(active.tiles, active.x, active.y + 1)) break
-                    if (!collisions.collidedBottom) { // If not collided at the bottom
-                        collisions.groundUpdates = 0;
-                        active.y++; // Move the active piece down
+                    if (this.map.isObstructed(piece.tiles, piece.x, piece.y + 1)) break
+                    if (!this.collisions.collidedBottom) { // If not collided at the bottom
+                        this.collisions.groundUpdates = 0;
+                        piece.y++; // Move the active piece down
                         await this.updateServer();
                     } else {
-                        collisions.groundUpdates++;
+                        this.collisions.groundUpdates++;
                         break;
                     }
 
@@ -97,16 +109,18 @@ export class Controller {
             }
         }
         if (this.moveLeft) { // If move left has been requested
-            if (!collisions.collidedLeft) { // If we aren't touching anything on the left
-                if (collisions.isObstructed(active.tiles, active.x - 1, active.y)) return;
-                active.x--;
+            if (!this.collisions.collidedLeft) { // If we aren't touching anything on the left
+                if (piece == null) return;
+                if (this.map.isObstructed(piece.tiles, piece.x - 1, piece.y)) return;
+                piece.x--;
                 await this.updateServer();
             }
             this.moveLeft = false;
         } else if (this.moveRight) { // If move right has been requested
-            if (!collisions.collidedRight) { // If we aren't touching anything on the right
-                if (collisions.isObstructed(active.tiles, active.x + 1, active.y)) return;
-                active.x++;
+            if (!this.collisions.collidedRight) { // If we aren't touching anything on the right
+                if (piece == null) return;
+                if (this.map.isObstructed(piece.tiles, piece.x + 1, piece.y)) return;
+                piece.x++;
                 await this.updateServer();
             }
             this.moveRight = false;

@@ -4,15 +4,18 @@ import {Connection} from "../../server/connection";
 
 class GameMode {
 
+    id: number;
     server: GameServer;
 
     /**
      * This class is implemented to include game
      * mode functionality
      *
+     *  @param id The id of this game mode
      *  @param server The current game server
      */
-    constructor(server: GameServer) {
+    constructor(id: number, server: GameServer) {
+        this.id = id;
         this.server = server;
     }
 
@@ -20,10 +23,10 @@ class GameMode {
      *  Returns the current game instance from the
      *  server
      *
-     *  @return Game|null The current game or null
+     *  @return Game The current game or null
      */
-    get game(): Game | null {
-        return this.server.game;
+    get game(): Game {
+        return <Game>this.server.game;
     }
 
     /**
@@ -73,6 +76,10 @@ class GameMode {
     *  Called when rows are cleared
     */
     async cleared(rows: number[]) {
+
+    }
+
+    async insertTiles(grid: number[][]) {
 
     }
 

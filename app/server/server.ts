@@ -107,19 +107,21 @@ class GameServer {
     startGame(): void {
         this.game = new Game(this); // Create a new game instance
         // Tell the clients when the game will start
-        this.broadcast(createPacket<TimeTillStartPacket>(7 /* ID = TimeTillStartPacket */, packet => packet.time = TIME_TILL_START));
+        this.broadcast(createPacket<TimeTillStartPacket>(7 /* ID = TimeTillStartPacket */, packet => packet.time = TIME_TILL_START)).then()
         log('GAME', `STARTING IN ${TIME_TILL_START}s`, chalk.bgYellow.black);
         // Set a timeout for when the game will start
         this.startTimeout = setTimeout(async () => {
             if (this.game !== null) { // Make sure the game hasn't been stopped
-                this.game.gameMode.init(); // Initialize the gamemode
-                // Broadcast the map size paket to all the clients
-                this.broadcast(createPacket<MapSizePacket>(17 /* ID = MapSizePacket */, packet => {
-                    packet.width = this.game!.map.width; // Set the packet width
-                    packet.height = this.game!.map.height; // Set the packet height
-                }));
-                // Broadcast the play packet to all the clients
-                this.broadcast(createPacket<PlayPacket>(6 /* ID = PlayPacket */));
+                await this.game.gameMode.init(); // Initialize the gamemode
+                Promise.allSettled([
+                    // Broadcast the map size paket to all the clients
+                    this.broadcast(createPacket<MapSizePacket>(17 /* ID = MapSizePacket */, packet => {
+                        packet.width = this.game!.map.width; // Set the packet width
+                        packet.height = this.game!.map.height; // Set the packet height
+                    })),
+                    // Broadcast the play packet to all the clients
+                    this.broadcast(createPacket<PlayPacket>(6 /* ID = PlayPacket */))
+                ]).then();
                 this.game.started = true; // Set the game to started
                 log('GAME', 'STARTED', chalk.bgGreen.black);
             }
