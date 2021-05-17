@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start:ts": "ts-node app/app.ts",
     "start": "npm run build && node build/app.js",
     "build": "tsc",
     "compile": "npm run build && pkg build/app.js -t node14-linux-x64,node14-win-x64 --out-path bin"

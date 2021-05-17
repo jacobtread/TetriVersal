@@ -164,6 +164,10 @@ interface GameModesPacket extends BasePacket {
     modes: GameModeRef[];
 }
 
+interface VotePacket extends BasePacket {
+    option: number;
+}
+
 const serverPackets: PacketRegister = {
     0: {} as KeepAlivePacket,
     1: {uuid: ''} as JoinResponsePacket,

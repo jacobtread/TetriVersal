@@ -13,7 +13,8 @@ import {
     KeepAlivePacket,
     parsePacket,
     PlayerJoinPacket,
-    PlayerLeavePacket
+    PlayerLeavePacket,
+    ScoreUpdatePacket
 } from "./packets";
 import {GameServer} from "./server";
 import {log as _log} from "../utils";
@@ -36,7 +37,7 @@ class Connection {
         this.setDeathTimeout();
     }
 
-    message(message: Data) {
+    message(message: Data): void {
         const data = message as string;
         try {
             const packet: BasePacket = parsePacket(data);
@@ -48,15 +49,24 @@ class Connection {
         }
     }
 
+    async setScore(amount: number): Promise<void> {
+        // Set the current score
+        this.score = amount;
+        // Update the client with a ScoreUpdatePacket
+        await this.send(createPacket<ScoreUpdatePacket>(16 /* ID = ScoreUpdatePacket */, packet => packet.score = amount /* Set the score amount */));
+    }
+
     async send(packet: any): Promise<void> {
         return new Promise<void>((resolve, reject) => {
+            // Stringify the packet
             const data = JSON.stringify(packet);
+            // Send the packet to the client
             this.session.send(data, (err: Error | undefined) => {
-                if (err) {
+                if (err) { // If we failed to send
                     this.log('SEND FAIL', err.message, chalk.bgRed.black);
-                    reject();
-                } else {
-                    resolve();
+                    reject(); // Reject the promise
+                } else { // If we sent the packet
+                    resolve(); // Resolve the promise
                 }
             });
         });

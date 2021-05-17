@@ -115,17 +115,6 @@ export class Game {
     }
 
     /**
-     *  This function adds the amount provided to the total score
-     *  then sends a ScoreUpdatePacket to the connected clients
-     *
-     *  @param amount The amount of score to add
-     */
-    addScore(amount: number) {
-        this.score += amount; // Increases the score by the amount
-        this.server.broadcast(createPacket<ScoreUpdatePacket>(16 /* ID = ScoreUpdatePacket */, packet => packet.score = this.score)).then()
-    }
-
-    /**
      *  This function creates and sends a bulk update packet
      *  which contains all the map data
      */

@@ -11,6 +11,7 @@ class ControlSwap extends GameMode {
     controller: Connection | null = null;
     nextChangeIn: number = 0;
     changeUpdates: number = 0;
+    score: number = 0;
 
     async start() {
         await this.swap();
@@ -73,6 +74,36 @@ class ControlSwap extends GameMode {
             if (this.controller.uuid === connection.uuid) {
                 await this.swap();
             }
+        }
+    }
+
+    async cleared(rows: number[]): Promise<void> {
+        const total: number = rows.length;
+        let score: number = 0;
+        if (total === 4) {
+            score = 800;
+        } else if (total > 0 && total < 4) {
+            score = 100 * total
+        } else {
+            const amount: number = Math.floor(total / 4);
+            if (amount > 0) {
+                score = 1200 * amount;
+            }
+        }
+        if (score > 0) this.addScore(score).then();
+    }
+
+    async addScore(amount: number) {
+        this.score += amount;
+        const game = this.game;
+        if (game !== null) {
+            const promises: Promise<void>[] = [];
+            for (let connection of game.server.connections) {
+                if (connection.name !== null) {
+                    promises.push(connection.setScore(this.score));
+                }
+            }
+            await Promise.allSettled(promises);
         }
     }
 }

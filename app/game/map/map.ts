@@ -1,6 +1,5 @@
 import {Piece} from "./piece";
 import {Game} from "../game";
-import {createPacket, RowClearedPacket} from "../../server/packets";
 
 export class GameMap {
 
@@ -51,22 +50,11 @@ export class GameMap {
                 cleared.push(y);
             }
         }
-        const total: number = cleared.length;
-        if (total === 4) {
-            this.game.addScore(800)
-        } else if (total > 0 && total < 4) {
-            this.game.addScore(100 * total)
-        } else {
-            const amount: number = Math.floor(total / 4);
-            if (amount > 0) {
-                this.game.addScore(1200 * amount);
-            }
-        }
         for (let y of cleared) {
             await this.removeCleared(y);
             await this.moveDown(y);
-            this.game.server.broadcast(createPacket<RowClearedPacket>(18, packet => packet.y = y));
         }
+        this.game.gameMode.cleared(cleared).then();
     }
 
     /**
