@@ -6,7 +6,6 @@ class GameMode {
 
     id: number;
     server: GameServer;
-    depSerial: boolean = false;
 
     /**
      * This class is implemented to include game

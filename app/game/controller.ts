@@ -3,9 +3,7 @@ import {MOVE_DELAY, PLACE_DELAY} from "../constants";
 import {Piece} from "./map/piece";
 import {Collisions} from "./collisions";
 import {GameMap} from "./map/map";
-import {createPacket, MoveActivePacket, RotateActivePacket} from "../server/packets";
-import {Connection} from "../server/connection";
-import {PacketPipe} from "../server/packetPipe";
+import {createPacket, MoveActivePacket, PacketPipe, RotateActivePacket} from "../server/packets";
 
 export class Controller {
 
@@ -54,7 +52,7 @@ export class Controller {
 
     async updateServer() {
         if (this.piece == null) return;
-        this.pipe.pipe(createPacket<MoveActivePacket>(14, packet => {
+        this.pipe.pipe(createPacket<MoveActivePacket>(14 /* ID = MoveActivePacket */, packet => {
             if (this.piece == null) return;
             packet.x = this.piece.x;
             packet.y = this.piece.y;
@@ -81,6 +79,7 @@ export class Controller {
                 return false;
             }
         } else {
+            this.collisions.groundUpdates = 0;
             if (this.moveRotate) {
                 const rotatedPiece: Piece = piece.rotate();
                 if (!this.map.isObstructed(rotatedPiece.tiles, piece.x, piece.y)) {

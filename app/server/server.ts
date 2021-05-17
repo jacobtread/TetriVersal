@@ -137,8 +137,9 @@ class GameServer {
     stopGame(): void {
         if (this.startTimeout !== undefined) clearTimeout(this.startTimeout); // Clear the timeout
         log('GAME', 'STOPPING', chalk.bgYellow.black); // Print to the console
-        if (this.game !== null) this.game.gameMode.stop(); // Stop the game mode
-        this.game = null; // Clear the game
+        if (this.game !== null) this.game.gameMode.stop().then(() => {
+            this.game = null; // Clear the game
+        }); // Stop the game mode
         log('GAME', 'STOPPED', chalk.bgRed.black); // Print to the console
     }
 

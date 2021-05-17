@@ -25,7 +25,7 @@ export class Game {
     constructor(server: GameServer) {
         this.server = server;
         this.map = new GameMap(this);
-        this.gameMode = new ControlSwap(this.server)
+        this.gameMode = new Teamwork(this.server)
     }
 
     tetrimino(): number[][] {
@@ -102,7 +102,9 @@ export class Game {
                 for (let x = 0; x < piece.size; x++) { // Loop through the x axis of the piece
                     const relX = piece.x + x; // The tile x axis relative to the grid
                     // If the tile is out of bounds we dont serialize it
-                    if (relY < 0 || relX < 0 || relY >= this.map.height || relX >= this.map.height) continue;
+                    if (relY < 0 || relX < 0 || relY >= this.map.height || relX >= this.map.width) {
+                        continue;
+                    }
                     // Get the tile data at the current x and y
                     const tile = piece.tiles[y][x];
                     // If the tile has data then place the data onto the grid

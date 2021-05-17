@@ -32,6 +32,10 @@ interface PacketRegister {
     [key: number]: BasePacket
 }
 
+interface PacketPipe {
+    pipe<P extends BasePacket>(packet: P): Promise<void>;
+}
+
 type UUID = string;
 
 class InvalidPacketException extends Error {
@@ -211,6 +215,7 @@ export {
     InvalidPacketException,
     parsePacket,
     createPacket,
+    PacketPipe,
     BasePacket,
     KeepAlivePacket,
     JoinRequestPacket,
@@ -233,5 +238,5 @@ export {
     ScoreUpdatePacket,
     MapSizePacket,
     RowClearedPacket,
-    MovingPiecePacket
+    MovingPiecePacket,
 }

@@ -6,7 +6,7 @@ import {SPAWN_DELAY} from "../../../constants";
 import {Piece} from "../../map/piece";
 import {
     ActivePiecePacket,
-    BasePacket,
+    BasePacket, ControlPacket,
     createPacket,
     MoveActivePacket,
     MovingPiecePacket,
@@ -36,7 +36,6 @@ class Teamwork extends GameMode {
 
     async init(): Promise<void> {
         const map: GameMap = this.game.map;
-        this.depSerial = true;
         map.width = 32;
         map.height = 22;
     }
@@ -50,20 +49,21 @@ class Teamwork extends GameMode {
                         pipe: async <P extends BasePacket>(packet: P): Promise<void> => {
                             await connection.send(packet);
                             if (packet.id === 14 || packet.id === 15) {
-                                await this.game.server.broadcast(createPacket<MovingPiecePacket>(19, packet => {
+                                this.game.server.broadcast(createPacket<MovingPiecePacket>(19, packet => {
                                     const piece = this.dataRegistry[connection.uuid].controller.piece;
                                     if (piece == null) return;
                                     packet.uuid = connection.uuid;
                                     packet.tile = piece.tiles;
                                     packet.x = piece.x;
                                     packet.y = piece.y;
-                                }), c => c.uuid !== connection.uuid)
+                                }), c => c.uuid === connection.uuid).then();
                             }
                         }
                     }, null),
                     spawnUpdates: 0,
                     nextPiece: []
                 }
+                connection.send(createPacket<ControlPacket>(9)).then()
             }
         }
     }
@@ -125,7 +125,6 @@ class Teamwork extends GameMode {
     async input(connection: Connection, input: string): Promise<void> {
         const uuid = connection.uuid;
         if (this.dataRegistry.hasOwnProperty(uuid)) {
-            console.log(input)
             const data: DataValue = this.dataRegistry[uuid];
             if (input === 'left') {
                 data.controller.moveLeft = true;
