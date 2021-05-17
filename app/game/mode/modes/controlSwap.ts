@@ -13,7 +13,7 @@ class ControlSwap extends GameMode {
     changeUpdates: number = 0;
 
     async start() {
-        this.swap();
+        await this.swap();
     }
 
     async update() {
@@ -22,7 +22,7 @@ class ControlSwap extends GameMode {
         if (this.changeUpdates >= this.nextChangeIn) {
             this.changeUpdates = 0;
             this.nextChangeIn = random(CONTROL_SWAP_MIN, CONTROL_SWAP_MAX);
-            this.swap();
+            await this.swap();
         } else {
             this.changeUpdates++;
         }
@@ -47,7 +47,7 @@ class ControlSwap extends GameMode {
         }
     }
 
-    swap() {
+    async swap() {
         log('CONTROLS', 'ASSIGNING', chalk.bgYellow.black);
         const active: Connection[] = this.server.active();
         if (active.length < 1) {
@@ -59,17 +59,19 @@ class ControlSwap extends GameMode {
         const connection: Connection = active[index];
         this.controller = connection;
         log('CONTROLS', 'ASSIGNED', chalk.bgGreen.black);
-        connection.send(createPacket<ControlPacket>(9));
-        this.server.broadcast(createPacket<ControlsPacket>(10, packet => {
-            packet.name = connection.name!;
-            packet.uuid = connection.uuid;
-        }), c => c.uuid === connection.uuid);
+        await Promise.allSettled([
+            connection.send(createPacket<ControlPacket>(9)),
+            this.server.broadcast(createPacket<ControlsPacket>(10, packet => {
+                packet.name = connection.name!;
+                packet.uuid = connection.uuid;
+            }), c => c.uuid === connection.uuid),
+        ]);
     }
 
     async close(connection: Connection, reason: string | null = null) {
         if (this.controller !== null) {
             if (this.controller.uuid === connection.uuid) {
-                this.swap();
+                await this.swap();
             }
         }
     }

@@ -59,7 +59,7 @@ export class Game {
      * This functions spawns a new piece and replaces the next
      * piece along with all the required networking
      */
-    spawn() {
+    async spawn() {
         // If the next piece is empty
         if (!this.nextPiece.length) this.nextPiece = this._next(); // Assign the next piece
         const tiles = this.nextPiece; // Get the current next piece
@@ -69,17 +69,19 @@ export class Game {
         const y = -tiles.length
         // Create a new piece for the active piece
         this.activePiece = new Piece(x, y, tiles);
-        // Tell all clients the new active piece
-        this.server.broadcast(createPacket<ActivePiecePacket>(12 /* ID = ActivePiecePacket */, packet => packet.tile = tiles));
-        // Tell all clients the piece position
-        this.server.broadcast(createPacket<MoveActivePacket>(14 /* ID = MoveActivePacket */, packet => {
-            packet.x = x;
-            packet.y = -tiles.length;
-        }));
+        await Promise.allSettled([
+            // Tell all clients the new active piece
+            this.server.broadcast(createPacket<ActivePiecePacket>(12 /* ID = ActivePiecePacket */, packet => packet.tile = tiles)),
+            // Tell all clients the piece position
+            this.server.broadcast(createPacket<MoveActivePacket>(14 /* ID = MoveActivePacket */, packet => {
+                packet.x = x;
+                packet.y = -tiles.length;
+            })),
+        ]);
         // Generate a new next piece
         this.nextPiece = this._next();
         // Tell all clients what the new piece is
-        this.server.broadcast(createPacket<NextPiecePacket>(13 /* ID = NextPiecePacket */, packet => packet.tile = this.nextPiece))
+        await this.server.broadcast(createPacket<NextPiecePacket>(13 /* ID = NextPiecePacket */, packet => packet.tile = this.nextPiece))
     }
 
     /**
@@ -94,7 +96,7 @@ export class Game {
             if (this.spawnUpdates >= SPAWN_DELAY) {
                 this.spawnUpdates = 0;
                 this.controller.reset();
-                this.spawn();
+                await this.spawn();
             } else {
                 this.spawnUpdates++;
             }
@@ -107,7 +109,7 @@ export class Game {
      *  (aka from reaching the top)
      */
     gameOver() {
-        this.server.broadcast(createPacket<StopPacket>(8));
+        this.server.broadcast(createPacket<StopPacket>(8)).then();
         log('GAME', 'GAME OVER', chalk.bgRed.black);
         this.started = false;
     }
@@ -120,7 +122,7 @@ export class Game {
      */
     addScore(amount: number) {
         this.score += amount; // Increases the score by the amount
-        this.server.broadcast(createPacket<ScoreUpdatePacket>(16 /* ID = ScoreUpdatePacket */, packet => packet.score = this.score));
+        this.server.broadcast(createPacket<ScoreUpdatePacket>(16 /* ID = ScoreUpdatePacket */, packet => packet.score = this.score)).then()
     }
 
     /**
@@ -130,7 +132,7 @@ export class Game {
     bulkUpdate() {
         const serialized: string[] = this.serializedString(); // Generate the serialized map data (rows of strings)
         // Broadcast the packet to all the clients
-        this.server.broadcast(createPacket<BulkMapPacket>(11 /* ID = BulkMapPacket */, packet => packet.lines = serialized));
+        this.server.broadcast(createPacket<BulkMapPacket>(11 /* ID = BulkMapPacket */, packet => packet.lines = serialized)).then();
         // Pretty server logging of whats just happened
         log('BULK UPDATE', 'SENT', chalk.bgGreen.black)
     }

@@ -26,7 +26,7 @@ class Connection {
     uuid: string;
     name: string | null;
     deathTimeout: NodeJS.Timeout | undefined;
-
+    score: number = 0;
 
     constructor(server: GameServer, session: WebSocket) {
         this.server = server;
@@ -40,7 +40,7 @@ class Connection {
         const data = message as string;
         try {
             const packet: BasePacket = parsePacket(data);
-            this.process(packet);
+            this.process(packet).then();
         } catch (e) {
             if (e instanceof InvalidPacketException) {
                 this.log('INVALID PACKET', e.message, chalk.bgRed.black)
@@ -62,26 +62,28 @@ class Connection {
         });
     }
 
-    process(packet: BasePacket) {
+    async process(packet: BasePacket) {
         this.setDeathTimeout();
         const id = packet.id;
         if (id === 0) {
-            this.send(createPacket<KeepAlivePacket>(0));
+            await this.send(createPacket<KeepAlivePacket>(0));
         } else if (id === 1) { // Join request packets
             const joinRequest: JoinRequestPacket = packet as JoinRequestPacket;
             if (this.server.isNameUsable(joinRequest.name)) { // if the name isn't taken
                 this.name = joinRequest.name;
-                // Tell the client the join was successful
-                this.send(createPacket<JoinResponsePacket>(1, packet => packet.uuid = this.uuid));
-                // Broadcast to all other connections that this player has joined
-                this.server.broadcast(createPacket<PlayerJoinPacket>(4, packet => {
-                    packet.uuid = this.uuid;
-                    packet.name = this.name!;
-                }), connection => connection.uuid === this.uuid);
+                await Promise.allSettled([
+                    // Tell the client the join was successful
+                    await this.send(createPacket<JoinResponsePacket>(1, packet => packet.uuid = this.uuid)),
+                    // Broadcast to all other connections that this player has joined
+                    await this.server.broadcast(createPacket<PlayerJoinPacket>(4, packet => {
+                        packet.uuid = this.uuid;
+                        packet.name = this.name!;
+                    }), connection => connection.uuid === this.uuid)
+                ])
                 this.server.join(this);
             } else {
                 // Tell the client the join failed because the name was taken
-                this.send(createPacket<JoinFailurePacket>(2, packet => packet.reason = 'Name already in use!'));
+                await this.send(createPacket<JoinFailurePacket>(2, packet => packet.reason = 'Name already in use!'));
             }
         } else if (id === 2) {
             const input: CInputPacket = packet as CInputPacket;
@@ -97,7 +99,7 @@ class Connection {
             this.server.broadcast(createPacket<PlayerLeavePacket>(5, packet => {
                 packet.name = this.name!;
                 packet.reason = reason;
-            }), connection => connection.uuid !== this.uuid);
+            }), connection => connection.uuid !== this.uuid).then();
         }
         this.close(reason);
     }
