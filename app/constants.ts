@@ -1,3 +1,5 @@
+import {isNumber} from "util";
+
 require('dotenv').config();
 
 // The tiles structures of each tetrimino
@@ -54,6 +56,8 @@ const TIME_TILL_START: number = parseInt(process.env.TIME_TILL_START ?? '2');
 const CONTROL_SWAP_MIN: number = parseInt(process.env.CONTROL_SWAP_MIN ?? '15');
 // CONTROL SWAP MAX DELAY
 const CONTROL_SWAP_MAX: number = parseInt(process.env.CONTROL_SWAP_MAX ?? '20');
+// 0 = Control Swap 1 = Teamwork
+const GAME_MODE_ID: number = parseInt(process.env.GAME_MODE_ID ?? '0');
 
 export {
     TETRIMINIOS,
@@ -66,5 +70,6 @@ export {
     TIME_TILL_START,
     CONTROL_SWAP_MIN,
     CONTROL_SWAP_MAX,
-    MOVE_DELAY
+    MOVE_DELAY,
+    GAME_MODE_ID
 }

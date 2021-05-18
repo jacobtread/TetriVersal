@@ -200,7 +200,7 @@ class GameServer {
         // Remove this connection from the list
         this.connections = this.connections.filter(c => c.uuid !== connection.uuid);
         connection.log('CLOSED', reason ?? '', chalk.bgYellow.black); // Print to the console
-        if (this.game !== null) this.game.gameMode.close(connection, reason); // Trigger the close function on the game mode
+        if (this.game !== null) this.game.gameMode.close(connection, reason).then(); // Trigger the close function on the game mode
     }
 
     /**
