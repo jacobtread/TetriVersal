@@ -1,5 +1,5 @@
 import {GameMap} from "./map/map";
-import {GAME_MODE_ID, TETRIMINIOS} from "../constants";
+import {TETRIMINIOS} from "../constants";
 import {createEmptyGrid, deepCopy, log, random} from "../utils";
 import {GameServer} from "../server/server";
 import {BulkMapPacket, createPacket, StopPacket} from "../server/packets";
@@ -7,10 +7,10 @@ import chalk from "chalk";
 import {GameMode} from "./mode/gameMode";
 import {Connection} from "../server/connection";
 import {ControlSwap} from "./mode/modes/controlSwap";
-import {Teamwork} from "./mode/modes/teamwork";
 
 export class Game {
 
+    created: boolean = false;
     map: GameMap; // The map which contains the solid tiles
     server: GameServer; // The server (Which this game is on)
     started: boolean = false; // If the game has started or not
@@ -25,11 +25,7 @@ export class Game {
     constructor(server: GameServer) {
         this.server = server;
         this.map = new GameMap(this);
-        if (GAME_MODE_ID === 1) {
-            this.gameMode = new Teamwork(this.server);
-        } else {
-            this.gameMode = new ControlSwap(this.server)
-        }
+        this.gameMode = new ControlSwap(server);
     }
 
     tetrimino(): number[][] {
@@ -116,6 +112,7 @@ export class Game {
                 }
             }
         }
+        // Insert any extra tiles from the game mode
         await this.gameMode.insertTiles(grid);
         return grid;
     }

@@ -1,4 +1,4 @@
-import {isNumber} from "util";
+import {GameModeRef} from "./server/packets";
 
 require('dotenv').config();
 
@@ -36,6 +36,11 @@ const TETRIMINIOS = [
     ]
 ];
 
+// The list of the available game modes
+const GAME_MODES: GameModeRef[] = [
+    {id: 0, name: 'Control Swap'},
+    {id: 1, name: 'Team work'},
+]
 // The delay between each update
 const UPDATE_DELAY: number = parseInt(process.env.UPDATE_DELAY ?? '50');
 // The delay before keep alive connections will die
@@ -71,5 +76,6 @@ export {
     CONTROL_SWAP_MIN,
     CONTROL_SWAP_MAX,
     MOVE_DELAY,
-    GAME_MODE_ID
+    GAME_MODE_ID,
+    GAME_MODES
 }

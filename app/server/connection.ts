@@ -14,7 +14,7 @@ import {
     parsePacket,
     PlayerJoinPacket,
     PlayerLeavePacket,
-    ScoreUpdatePacket
+    ScoreUpdatePacket, VotePacket
 } from "./packets";
 import {GameServer} from "./server";
 import {log as _log} from "../utils";
@@ -101,6 +101,9 @@ class Connection {
         } else if (id === 3) {
             const disconnect: DisconnectPacket = packet as DisconnectPacket;
             this.disconnect(disconnect.reason);
+        } else if (id === 4) {
+            const vote: VotePacket = packet as VotePacket;
+            this.server.vote(this, vote.option);
         }
     }
 

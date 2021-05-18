@@ -1,6 +1,6 @@
 import {deepCopy} from "../utils";
 
-function createPacket<P extends BasePacket>(id: number, assigner: ((packet: P) => void) = _ => {
+export function createPacket<P extends BasePacket>(id: number, assigner: ((packet: P) => void) = _ => {
 }, packets: PacketRegister = serverPackets): P {
     if (id in packets) {
         const packet: P = deepCopy(packets[id]) as P;
@@ -10,7 +10,7 @@ function createPacket<P extends BasePacket>(id: number, assigner: ((packet: P) =
     } else throw new InvalidPacketException('No outbound packet mapped to ID ' + id)
 }
 
-function parsePacket<P extends BasePacket>(data: string, packets: PacketRegister = clientPackets): P {
+export function parsePacket<P extends BasePacket>(data: string, packets: PacketRegister = clientPackets): P {
     const body = JSON.parse(data);
     if ('id' in body) {
         const id: number = body.id as number;
@@ -28,17 +28,17 @@ function parsePacket<P extends BasePacket>(data: string, packets: PacketRegister
     } else throw new InvalidPacketException('Packet missing "id"');
 }
 
-interface PacketRegister {
+export interface PacketRegister {
     [key: number]: BasePacket
 }
 
-interface PacketPipe {
+export interface PacketPipe {
     pipe<P extends BasePacket>(packet: P): Promise<void>;
 }
 
 type UUID = string;
 
-class InvalidPacketException extends Error {
+export class InvalidPacketException extends Error {
 
     constructor(reason: string) {
         super(reason);
@@ -46,140 +46,140 @@ class InvalidPacketException extends Error {
 
 }
 
-interface BasePacket {
+export interface BasePacket {
     id: number;
 }
 
 // Send by the player to request joining with the provided name
-interface JoinRequestPacket extends BasePacket {
+export interface JoinRequestPacket extends BasePacket {
     name: string;
 }
 
 // Send to the player if the joined
-interface JoinResponsePacket extends BasePacket {
+export interface JoinResponsePacket extends BasePacket {
     uuid: UUID;
 }
 
 // Sent pack to a player if they failed to join
-interface JoinFailurePacket extends BasePacket {
+export interface JoinFailurePacket extends BasePacket {
     reason: string;
 }
 
 // Packet broadcast to all other clients when a player joins
-interface PlayerJoinPacket extends BasePacket {
+export interface PlayerJoinPacket extends BasePacket {
     name: string;
     uuid: UUID;
 }
 
 // Packet broadcast to all other clients when a player leaves
-interface PlayerLeavePacket extends BasePacket {
+export interface PlayerLeavePacket extends BasePacket {
     reason: string;
     name: string
 }
 
 // Packet can be sent or received indicates disconnect by client or server
-interface DisconnectPacket extends BasePacket {
+export interface DisconnectPacket extends BasePacket {
     reason: string;
 }
 
 // Packet indicating the game has started
-interface PlayPacket extends BasePacket {
+export interface PlayPacket extends BasePacket {
 
 }
 
-interface TimeTillStartPacket extends BasePacket {
+export interface TimeTillStartPacket extends BasePacket {
     time: number;
 }
 
 // Packet indicating the game has been paused
-interface StopPacket extends BasePacket {
+export interface StopPacket extends BasePacket {
 
 }
 
 // Packet sent to the player who is currently in control
-interface ControlPacket extends BasePacket {
+export interface ControlPacket extends BasePacket {
 
 }
 
 // Packet for telling other players who's in control
-interface ControlsPacket extends BasePacket {
+export interface ControlsPacket extends BasePacket {
     name: string;
     uuid: string;
 }
 
 // Packet sent by the client when an input key is pressed
-interface CInputPacket extends BasePacket {
+export interface CInputPacket extends BasePacket {
     key: string;
 }
 
 // Packet contains all the map data
-interface BulkMapPacket extends BasePacket {
+export interface BulkMapPacket extends BasePacket {
     lines: string[];
 }
 
 // Packet tells the client the layout of the current piece
-interface ActivePiecePacket extends BasePacket {
+export interface ActivePiecePacket extends BasePacket {
     tile: number[][]
 }
 
 // Packet tells the client where to put the active piece
-interface MoveActivePacket extends BasePacket {
+export interface MoveActivePacket extends BasePacket {
     x: number;
     y: number;
 }
 
 // Packet tells the client to rotate its piece
-interface RotateActivePacket extends BasePacket {
+export interface RotateActivePacket extends BasePacket {
 
 }
 
 // Packet tells the client what the next piece is
-interface NextPiecePacket extends BasePacket {
+export interface NextPiecePacket extends BasePacket {
     tile: number[][]
 }
 
 // Packets tells the server the client is still alive and vise versa
-interface KeepAlivePacket extends BasePacket {
+export interface KeepAlivePacket extends BasePacket {
 
 }
 
 // Packet tells the client the current score
-interface ScoreUpdatePacket extends BasePacket {
+export interface ScoreUpdatePacket extends BasePacket {
     score: number;
 }
 
 // Packet tells the client the map width and height
-interface MapSizePacket extends BasePacket {
+export interface MapSizePacket extends BasePacket {
     width: number;
     height: number;
 }
 
 // Packet tells the client when a row has been cleared
-interface RowClearedPacket extends BasePacket {
+export interface RowClearedPacket extends BasePacket {
     y: number;
 }
 
-interface GameModeRef {
+export interface GameModeRef {
     id: number;
     name: string;
 }
 
-interface GameModesPacket extends BasePacket {
+export interface GameModesPacket extends BasePacket {
     modes: GameModeRef[];
 }
 
-interface VotePacket extends BasePacket {
+export interface VotePacket extends BasePacket {
     option: number;
 }
 
-interface MovingPiecePacket extends BasePacket {
+export interface MovingPiecePacket extends BasePacket {
     uuid: string;
     tile: number[][];
     x: number;
     y: number;
 }
 
-const serverPackets: PacketRegister = {
+export const serverPackets: PacketRegister = {
     0: {} as KeepAlivePacket,
     1: {uuid: ''} as JoinResponsePacket,
     2: {reason: ''} as JoinFailurePacket,
@@ -191,52 +191,22 @@ const serverPackets: PacketRegister = {
     8: {} as StopPacket,
     9: {} as ControlPacket,
     10: {name: '', uuid: ''} as ControlsPacket,
-    11: {lines: ['']} as BulkMapPacket,
-    12: {tile: [[0]]} as ActivePiecePacket,
-    13: {tile: [[0]]} as NextPiecePacket,
+    11: {lines: [] as string[]} as BulkMapPacket,
+    12: {tile: [[]] as number[][]} as ActivePiecePacket,
+    13: {tile: [[]] as number[][]} as NextPiecePacket,
     14: {x: 0, y: 0} as MoveActivePacket,
     15: {} as RotateActivePacket,
     16: {score: 0} as ScoreUpdatePacket,
     17: {width: 0, height: 0} as MapSizePacket,
     18: {y: 0} as RowClearedPacket,
-    19: {uuid: '', tile: [[0]], x: 0, y: 0} as MovingPiecePacket
+    19: {uuid: '', tile: [[]] as number[][], x: 0, y: 0} as MovingPiecePacket,
+    20: {modes: [] as GameModeRef[]} as GameModesPacket
 }
 
-const clientPackets: PacketRegister = {
+export const clientPackets: PacketRegister = {
     0: {} as KeepAlivePacket,
     1: {name: ''} as JoinRequestPacket,
     2: {key: ''} as CInputPacket,
     3: {reason: ''} as DisconnectPacket,
-}
-
-export {
-    clientPackets,
-    serverPackets,
-    InvalidPacketException,
-    parsePacket,
-    createPacket,
-    PacketPipe,
-    BasePacket,
-    KeepAlivePacket,
-    JoinRequestPacket,
-    JoinResponsePacket,
-    JoinFailurePacket,
-    DisconnectPacket,
-    PlayPacket,
-    TimeTillStartPacket,
-    StopPacket,
-    ControlPacket,
-    ControlsPacket,
-    PlayerJoinPacket,
-    PlayerLeavePacket,
-    CInputPacket,
-    BulkMapPacket,
-    ActivePiecePacket,
-    MoveActivePacket,
-    RotateActivePacket,
-    NextPiecePacket,
-    ScoreUpdatePacket,
-    MapSizePacket,
-    RowClearedPacket,
-    MovingPiecePacket,
+    4: {option: 0} as VotePacket
 }

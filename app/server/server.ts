@@ -2,21 +2,29 @@ import {Connection} from "./connection";
 import {v4 as uuidv4} from "uuid";
 import * as WebSocket from "ws";
 import {Data} from "ws";
-import {MIN_PLAYERS, PORT, TIME_TILL_START} from "../constants";
+import {GAME_MODES, MIN_PLAYERS, PORT, TIME_TILL_START} from "../constants";
 import {Game} from "../game/game";
-import {createPacket, MapSizePacket, PlayPacket, TimeTillStartPacket} from "./packets";
+import {createPacket, GameModesPacket, MapSizePacket, PlayPacket, TimeTillStartPacket} from "./packets";
 import {log} from "../utils";
 import chalk from "chalk";
 
 import {networkInterfaces} from "os";
+import {Teamwork} from "../game/mode/modes/teamwork";
+import {ControlSwap} from "../game/mode/modes/controlSwap";
+
+interface Votes {
+    [key: number]: Connection[];
+}
 
 class GameServer {
     connections: Connection[]; // The current connections
     server: WebSocket.Server; // The web socket server instance
-    game: Game | null = null; // The current game instance
+    game: Game; // The current game instance
     startTimeout: NodeJS.Timeout | undefined; // The timeout for when the game will start
+    votes: Votes = {};
 
     constructor() {
+        this.game = new Game(this); // Create a new game instance
         this.connections = []; // Assign connections to an empty row
         this.server = new WebSocket.Server({ // Create a server with the requested port
             port: PORT,
@@ -40,8 +48,8 @@ class GameServer {
                 }
             }
             let addr = this.server.address();
-            if (typeof addr !== 'string') {
-                addr = addr.address;
+            if (typeof addr !== 'string') { // If the address is the address object
+                addr = addr.address; // Grab the address property
             }
             log('OPEN', `AWAITING CONNECTIONS ON ws://${addr}:${PORT}`, chalk.bgGreen.black)
         });
@@ -69,8 +77,8 @@ class GameServer {
      *  @param connection The connection that joined
      */
     join(connection: Connection): void {
-        if (this.game === null) return;
         this.game.gameMode.join(connection).then();
+        connection.send(createPacket<GameModesPacket>(20, packet => packet.modes = GAME_MODES)).then();
     }
 
     /**
@@ -81,8 +89,36 @@ class GameServer {
      *
      */
     input(connection: Connection, input: string): void {
-        if (this.game === null || !this.game.started) return;
+        if (!this.game.started) return;
         this.game.gameMode.input(connection, input).then();
+    }
+
+    vote(connection: Connection, option: number): void {
+        for (let id in this.votes) {
+            if (this.votes.hasOwnProperty(id)) {
+                const connections: Connection[] = this.votes[id];
+                if (connection.uuid in connections.map(c => c.uuid)) {
+                    this.votes[id] = connections.filter(c => c.uuid !== connection.uuid);
+                }
+            }
+        }
+        if (!this.votes[option]) this.votes[option] = [];
+        this.votes[option].push(connection);
+    }
+
+    votedMode(): number {
+        let highestID: number = 0;
+        let highestVotes: number = 0;
+        for (let id in this.votes) {
+            if (this.votes.hasOwnProperty(id)) {
+                const connections: Connection[] = this.votes[id];
+                if (connections.length > highestVotes) {
+                    highestID = parseInt(id);
+                    highestVotes = connections.length;
+                }
+            }
+        }
+        return highestID;
     }
 
     /**
@@ -91,7 +127,7 @@ class GameServer {
      *  and game logic
      */
     async update() {
-        if (this.game === null) { // WAITING FOR GAME
+        if (!this.game.created) { // WAITING FOR GAME
             if (this.active().length >= MIN_PLAYERS) { // If we have the needed amount of players
                 this.startGame(); // Start the game
             }
@@ -106,13 +142,24 @@ class GameServer {
      *  game will be starting
      */
     startGame(): void {
-        this.game = new Game(this); // Create a new game instance
+        this.game.created = true;
         // Tell the clients when the game will start
         this.broadcast(createPacket<TimeTillStartPacket>(7 /* ID = TimeTillStartPacket */, packet => packet.time = TIME_TILL_START)).then()
         log('GAME', `STARTING IN ${TIME_TILL_START}s`, chalk.bgYellow.black);
         // Set a timeout for when the game will start
         this.startTimeout = setTimeout(async () => {
-            if (this.game !== null) { // Make sure the game hasn't been stopped
+            if (this.game.created) { // Make sure the game hasn't been stopped
+                const mode: number = this.votedMode();
+                let modeName: string = ''
+                if (mode === 1) {
+                    modeName = 'Teamwork'
+                    this.game.gameMode = new Teamwork(this);
+                } else {
+                    modeName = 'Control Swap'
+                    this.game.gameMode = new ControlSwap(this)
+                }
+                this.votes = {};
+                log('GAME', `PLAYING MODE ${modeName}`, chalk.bgYellow.black);
                 await this.game.gameMode.init(); // Initialize the gamemode
                 Promise.allSettled([
                     // Broadcast the map size paket to all the clients
@@ -121,7 +168,7 @@ class GameServer {
                         packet.height = this.game!.map.height; // Set the packet height
                     })),
                     // Broadcast the play packet to all the clients
-                    this.broadcast(createPacket<PlayPacket>(6 /* ID = PlayPacket */))
+                    this.broadcast(createPacket<PlayPacket>(6 /* ID = PlayPacket */)),
                 ]).then();
                 await this.game.gameMode.start();
                 this.game.started = true; // Set the game to started
@@ -137,8 +184,8 @@ class GameServer {
     stopGame(): void {
         if (this.startTimeout !== undefined) clearTimeout(this.startTimeout); // Clear the timeout
         log('GAME', 'STOPPING', chalk.bgYellow.black); // Print to the console
-        if (this.game !== null) this.game.gameMode.stop().then(() => {
-            this.game = null; // Clear the game
+        this.game.gameMode.stop().then(() => {
+            this.game.created = false; // Clear the game
         }); // Stop the game mode
         log('GAME', 'STOPPED', chalk.bgRed.black); // Print to the console
     }
@@ -200,7 +247,7 @@ class GameServer {
         // Remove this connection from the list
         this.connections = this.connections.filter(c => c.uuid !== connection.uuid);
         connection.log('CLOSED', reason ?? '', chalk.bgYellow.black); // Print to the console
-        if (this.game !== null) this.game.gameMode.close(connection, reason).then(); // Trigger the close function on the game mode
+        this.game.gameMode.close(connection, reason).then(); // Trigger the close function on the game mode
     }
 
     /**
