@@ -28,6 +28,16 @@ export class Game {
         this.gameMode = new ControlSwap(server);
     }
 
+    /**
+     *  Resets the map and the game states
+     */
+    reset() {
+        this.map = new GameMap(this);
+        this.gameMode = new ControlSwap(this.server);
+        this.started = false;
+        this.created = false;
+    }
+
     tetrimino(): number[][] {
         const id = random(0, TETRIMINIOS.length - 1);
         return deepCopy(TETRIMINIOS[id]);
