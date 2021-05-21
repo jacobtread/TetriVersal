@@ -1,10 +1,10 @@
 import {Client} from "./client";
-import {_p, getPossibleAddresses, none} from "../utils";
+import {_p, ExclusionRule, getPossibleAddresses, none} from "../utils";
 import * as WebSocket from "ws";
 import {Game} from "../game/game";
 
 const {v4} = require('uuid');
-const {okay, good, info, debug} = require('../log');
+const {okay, good, debug} = require('../log');
 
 // The port the server will run on
 const PORT: number = parseInt(process.env.PORT ?? '80');
@@ -72,7 +72,7 @@ export class Server {
     connection(socket: WebSocket): void {
         const client: Client = new Client(this, socket); // Create a client
         this.clients.push(client); // Add the client to the clients
-        info('OPEN', 'Connected', client.uuid); // Log the connection
+        good('OPEN', 'Connected', client.uuid); // Log the connection
         // Subscribe a message listener
         socket.on('message', function (data: WebSocket.Data) {
             debug(data, client.uuid); // Debug log the data
@@ -93,18 +93,16 @@ export class Server {
      *  @return {Promise<void>} A promise resolved when all are sent
      */
     async broadcast(packet: any, exclude: ExclusionRule<Client> = none): Promise<void> {
-        return new Promise((resolve, reject) => {
-            const promises: Promise<void>[] = []; // Empty array of promises
-            for (let client of this.clients) { // Iterate the connected clients
-                // Make sure the client has joined and isn't excluded
-                if (client.name !== undefined && !exclude(client)) {
-                    // Create a new send promise
-                    promises.push(client.send(packet));
-                }
+        const promises: Promise<void>[] = []; // Empty array of promises
+        for (let client of this.clients) { // Iterate the connected clients
+            // Make sure the client has joined and isn't excluded
+            if (client.name !== undefined && !exclude(client)) {
+                // Create a new send promise
+                promises.push(client.send(packet));
             }
-            // Wait till all resolved
-            Promise.allSettled(promises).then(_ => resolve).catch(reject);
-        })
+        }
+        // Wait till all resolved
+        await Promise.allSettled(promises);
     }
 
     /**
@@ -130,7 +128,7 @@ export class Server {
             id: 4,
             uuid: client.uuid,
             name: client.name
-        }, client.isNotSelf);
+        }, c => client.isSelf(c));
     }
 
     /**
@@ -159,9 +157,9 @@ export class Server {
      *  @param {string} reason The reason for closing
      */
     close(client: Client, reason: string): void {
-        this.clients = this.clients.filter(client.isNotSelf);
+        this.clients = this.clients.filter(c => client.isNotSelf(c));
         okay('CLOSED', reason, client.uuid);
-        if (this.clients.length < MIN_PLAYERS) stop();
+        if (this.clients.length < MIN_PLAYERS) this.game.stop();
     }
 
     /**
@@ -189,7 +187,7 @@ export class Server {
             }
         } else {
             if (!this.game.started) {
-                if (this.startUpdates >= START_DELAY) {
+                if (this.startUpdates >= START_DELAY && !this.game.preparing) {
                     this.startUpdates = 0;
                     await this.game.start();
                 } else {

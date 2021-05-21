@@ -44,7 +44,6 @@ export class Collisions {
     async update(): Promise<void> {
         this.reset(); // Reset the collisions
         // If we have an empty piece
-        if (this.piece.tiles.length < 1) return; // Ignore the code
         const size: number = this.piece.size;
         for (let y = 0; y < size; y++) {
             const gridY: number = this.piece.y + y; // Relative the y position

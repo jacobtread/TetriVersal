@@ -1,5 +1,7 @@
 import {NetworkInterfaceInfo, networkInterfaces} from "os";
 
+export type ExclusionRule<V> = (value: V) => boolean;
+
 /**
  *  Creates a deep copy (clone) of an
  *  object or array us ing JSON.parse and

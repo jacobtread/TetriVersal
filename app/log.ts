@@ -21,6 +21,9 @@ function padToWidth(text: string, width: number): string {
     const diff: number = Math.floor((width - text.length) / 2);
     // Apply the padding to both sides
     text = ' '.repeat(diff) + text + ' '.repeat(diff);
+    if (text.length < width) {
+        text += ' '.repeat(width - text.length);
+    }
     return text;
 }
 
@@ -41,7 +44,7 @@ function log(title: string, _text: string | any, suffix: string = '', error: boo
         text += chalk.yellow(JSON.stringify(_text)); // Stringify the object
     }
     // Append the suffix and shade it in dark
-    text += chalk.hex('#222222')(suffix);
+    text += ' ' + chalk.hex('#222222')(suffix);
     if (!error) {
         console.log(text);
     } else {

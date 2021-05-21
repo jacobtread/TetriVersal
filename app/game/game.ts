@@ -2,18 +2,20 @@ import {Server} from "../server/server";
 import {GameMode} from "./mode/gamemode";
 import {Map} from "./map/map";
 import {ControlSwap} from "./mode/modes/controlSwap";
-import {createEmptyMatrix, deepCopy, none, random} from "../utils";
+import {createEmptyMatrix, deepCopy, ExclusionRule, none, random} from "../utils";
 import {debug, good, okay} from "../log";
 import {SHAPES} from "./map/piece";
 import {Client} from "../server/client";
+import {Teamwork} from "./mode/modes/teamwork";
 
 export class Game {
 
     ready: boolean; // If the game is ready to start
+    preparing: boolean; // If the game is starting
     server: Server; // The server running this game
     started: boolean; // If the game has started
     mode: GameMode; // The current game mode
-    map: Map; // The current game map
+    readonly map: Map; // The current game map
 
     /**
      *  This class handles the game logic
@@ -25,8 +27,9 @@ export class Game {
         this.server = server;
         this.ready = false;
         this.started = false;
-        this.mode = new ControlSwap(this);
+        this.preparing = false;
         this.map = new Map(this);
+        this.mode = new ControlSwap(this);
     }
 
     /**
@@ -63,7 +66,9 @@ export class Game {
      *  @return {Promise<void>} A promise for when the game is started
      */
     async start(): Promise<void> {
+        good('GAME', 'Starting');
         this.ready = true; // Mark the game as ready
+        this.preparing = true;
         await this.mode.init();
         // Broadcast a MapSizePacket
         await this.server.broadcast({
@@ -113,16 +118,17 @@ export class Game {
      */
     reset(): void {
         this.ready = false;
+        this.preparing = false;
         this.started = false;
         this.mode = new ControlSwap(this);
-        this.map = new Map(this);
+        this.map.reset();
     }
 
     /**
      *  Called when the game is lost
      */
     gameOver(): void {
-        stop();
+        this.stop();
     }
 
     /**

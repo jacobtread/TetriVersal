@@ -36,8 +36,8 @@ export function validatePacket(packet: any): void {
         throw new InvalidPacketException('Packet "id" was not of number type');
     }
     const id: number = packet.id; // Get the id from the packet
-    if (id ! in CLIENT_PACKETS) { // If the packet id isn't in CLIENT_PACKETS
-        throw new InvalidPacketException('Packet "id" was not found in registry');
+    if (!CLIENT_PACKETS.hasOwnProperty(id)) { // If the packet id isn't in CLIENT_PACKETS
+        throw new InvalidPacketException(`Packet "${id}" was not found in registry`);
     }
     const structure: any = CLIENT_PACKETS[id];
     const keys: string[] = Object.keys(structure); // Get the keys from the structure

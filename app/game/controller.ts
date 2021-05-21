@@ -33,7 +33,7 @@ export class Controller {
         this.game = game;
         this.map = game.map;
         this.pipe = pipe;
-        this.collisions = new Collisions(this.map, EMPTY_PIECE);
+        this.collisions = new Collisions(game.map, EMPTY_PIECE);
         this._piece = EMPTY_PIECE;
         this.moveLeft = this.moveRight = this.moveDown = this.moveRotate = false;
         this.moveUpdates = 0;
@@ -89,17 +89,15 @@ export class Controller {
      *  @return {Promise<void>} A promise for when the update is complete
      */
     async update(): Promise<void> {
+        if (this.piece.empty()) return;
         await this.collisions.update(); // Update the collisions
         if (this.collisions.bottom) { // If we are collided on the bottom
             // If we have a piece and we have reached the place delay
-            if (!this.piece.empty() && this.collisions.groundUpdates >= PLACE_DELAY) {
+            if (this.collisions.groundUpdates >= PLACE_DELAY) {
                 this.collisions.groundUpdates = 0; // Reset the ground updates
                 this.map.solidify(this.piece); // Solidify the piece
                 await this.map.clearing(); // Clear the full rows
                 this.game.bulkUpdate(); // Send a bulk map update
-                if (this.piece.atLimit()) { // If we have reached the top of the mpa
-                    this.game.gameOver(); // Game over
-                }
                 this.piece = EMPTY_PIECE; // Set an empty piece
             }
         } else {
@@ -119,25 +117,23 @@ export class Controller {
                 this.collisions.groundUpdates = 0; // Reset the ground updates
                 const distance: number = this.moveDown ? 4 : 2; // Get the distance we need to travel
                 for (let _ = 0; _ < distance; _++) { // Iterate over the distance positions
-                    if (!this.piece.empty()) { // If the piece is not empty
-                        await this.collisions.update(); // Update the collisions
-                        // If the piece is not obstructed
-                        if (this.map.obstructed(this.piece.tiles, this.piece.x, this.piece.y + 1)) break;
-                        if (!this.collisions.bottom) { // If we are collided on the bottom
-                            this.collisions.groundUpdates = 0; // Reset the ground updates
-                            this.piece.y++; // Move the piece down
-                            this.moveUpdate(); // Send a move update
-                        } else {
-                            this.collisions.groundUpdates++; // Increase the ground updates
-                            break;
-                        }
+                    // If the piece is not empty
+                    await this.collisions.update(); // Update the collisions
+                    // If the piece is not obstructed
+                    if (this.map.obstructed(this.piece.tiles, this.piece.x, this.piece.y + 1)) break;
+                    if (!this.collisions.bottom) { // If we are collided on the bottom
+                        this.collisions.groundUpdates = 0; // Reset the ground updates
+                        this.piece.y++; // Move the piece down
+                        this.moveUpdate(); // Send a move update
+                    } else {
+                        this.collisions.groundUpdates++; // Increase the ground updates
+                        break;
                     }
                 }
             } else {
                 this.moveUpdates++; // Increase the move updates
             }
         }
-        if (this.piece.empty()) return; // If we have an empty piece
         if (this.moveLeft) { // If we need to move left
             if (!this.collisions.left) { // If we arent collided left
                 // If we wont be obstructed on the left
@@ -155,7 +151,7 @@ export class Controller {
                     this.moveUpdate(); // Send a move update
                 }
             }
-            this.moveLeft = false; // We don't need to move right
+            this.moveRight = false; // We don't need to move right
         }
     }
 }

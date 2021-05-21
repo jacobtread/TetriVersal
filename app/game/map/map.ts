@@ -1,5 +1,5 @@
-import {Game} from "app/game/game";
-import {Piece} from "app/game/map/piece";
+import {Game} from "../game";
+import {Piece} from "./piece";
 
 export class Map {
 
@@ -24,12 +24,22 @@ export class Map {
     }
 
     /**
+     *  Clears the piece data stored in this map
+     **/
+    reset(): void {
+        this.solid = [];
+    }
+
+    /**
      *  Clones a piece and places it into the
      *  solid pieces array
      */
     solidify(piece: Piece): void {
         const clone: Piece = piece.clone();
         this.solid.push(clone);
+        if (piece.atLimit()) { // If we have reached the top of the mpa
+            this.game.gameOver(); // Game over
+        }
     }
 
     /**
@@ -113,7 +123,7 @@ export class Map {
         for (let y = 0; y < size; y++) { // Iterate over the y axis
             const gridY: number = _y + y; // Relativize the y position
             for (let x = 0; x < size; x++) { // Iterate over the x axis
-                const gridX: number = _x = x; // Relativize the x position
+                const gridX: number = _x + x; // Relativize the x position
                 const tile: number = tiles[y][x]; // Get the tile
                 if (tile > 0) { // Make sure the tile has data
                     if (gridX < 0 || gridX >= this.width) return true;  // Check if the piece is out of bounds on the x axis

@@ -1,4 +1,4 @@
-const {deepCopy, rotateMatrix} = require('app/utils')
+import {deepCopy, rotateMatrix} from "../../utils";
 
 // Stores the structures of each shape
 export const SHAPES = [
@@ -116,7 +116,7 @@ export class Piece {
      */
     containsAny(y: number) {
         for (let x = 0; x < this.size; x++) { // Iterate over the x axis
-            if (this.contains(x, y)) { // If this position contains a tile
+            if (this.contains(this.x + x, y)) { // If this position contains a tile
                 return true;
             }
         }
@@ -131,7 +131,7 @@ export class Piece {
      *  @return {boolean} If it hits the top or not
      */
     atLimit(): boolean {
-        return this.y <= 0 && this.containsAny(this.y);
+        return this.y <= 0 && this.containsAny(0);
     }
 
     /**
@@ -166,7 +166,7 @@ export class Piece {
      *  @return {boolean} If the piece has no tiles
      */
     empty(): boolean {
-        return this.tiles.length == 0;
+        return this.tiles.length === 0;
     }
 
 }
