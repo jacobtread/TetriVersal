@@ -1,82 +1,96 @@
-import {GameMap} from "./map/map";
-import {Game} from "./game";
+import {Map} from "./map/map";
 import {Piece} from "./map/piece";
-
 
 export class Collisions {
 
-    map: GameMap
-    piece: Piece | null
-    collidedBottom: boolean = false;
-    collidedLeft: boolean = false;
-    collidedRight: boolean = false;
-    groundUpdates: number = 0;
+    map: Map; // The game map instance
+    piece: Piece; // The current piece
 
-    constructor(game: Game, piece: Piece | null) {
-        this.map = game.map;
+    bottom: boolean; // If the piece is collided on the bottom
+    left: boolean; // If the piece is collided on the left
+    right: boolean; // If the piece is collided on the right
+
+    groundUpdates: number; // The amount of updates the piece has been on the ground for
+
+    /**
+     *  This class contains collision detection logic
+     *
+     *  @param {Map} map The game map instance
+     *  @param {Piece} piece The current piece
+     */
+    constructor(map: Map, piece: Piece) {
+        this.map = map;
         this.piece = piece;
-    }
-
-    reset() {
-        this.collidedBottom = false;
-        this.collidedLeft = false;
-        this.collidedRight = false;
+        this.bottom = this.left = this.right = false; // Set all collisions to false
+        this.groundUpdates = 0; // Set ground updates to zero
     }
 
     /**
-     *  Update the collision detection for the active
-     *  piece (Checks surrounding pieces)
+     *  Resets the current collisions and current
+     *  updates
      */
-    async update() {
-        this.reset();
-        const piece: Piece | null = this.piece;
-        // If there is no active piece ignore everything else
-        if (piece === null) return;
-        const pieces: Piece[] = this.map.solid;
-        const size: number = piece.size;
+    reset(): void {
+        this.bottom = this.left = this.right = false; // Set all collisions to false
+        this.groundUpdates = 0; // Reset the ground updates
+    }
+
+    /**
+     *  Runs the updates for the collision detection checks the nearby pieces
+     *  to see if they have collided
+     *
+     *  @async
+     *  @return {Promise<void>} A promise for when the update is finished
+     */
+    async update(): Promise<void> {
+        this.reset(); // Reset the collisions
+        // If we have an empty piece
+        if (this.piece.tiles.length < 1) return; // Ignore the code
+        const size: number = this.piece.size;
         for (let y = 0; y < size; y++) {
-            const gridY: number = piece.y + y;
-            const bottom: number = gridY + 1;
+            const gridY: number = this.piece.y + y; // Relative the y position
+            const nextRow: number = gridY + 1; // Get the next row
             for (let x = 0; x < size; x++) {
-                const gridX: number = piece.x + x;
-                const tile: number = piece.tiles[y][x];
+                const gridX: number = this.piece.x + x; // Relative the x position
+                const tile: number = this.piece.tiles[y][x];  // Get the current tile
                 if (tile > 0) {
-                    const left: number = gridX - 1;
-                    if (this.contains(pieces, left, gridY) /* Left tile contains data */
-                        || left === -1 /* Left tile is the left border*/) {
-                        this.collidedLeft = true;
+                    const prevCol: number = gridX - 1;
+                    // Check if the previous column is outside the map or contains a tile
+                    if (prevCol === -1 || this.containsAny(prevCol, gridY)) {
+                        this.left = true;
                     }
-                    const right: number = gridX + 1;
-                    if (this.contains(pieces, right, gridY) /* Right tile contains data */
-                        || right === this.map.width /* Right tile is the right border */) {
-                        this.collidedRight = true;
+                    const nextCol: number = gridX + 1;
+                    // Check if the next column is outside the map or contains a tile
+                    if (nextCol === this.map.width || this.containsAny(nextCol, gridY)) {
+                        this.right = true;
                     }
-                    if (this.contains(pieces, gridX, bottom) /* Bottom tile contains data*/
-                        || bottom === this.map.height /* Bottom tile is the bottom border*/) {
-                        this.collidedBottom = true;
+                    if (nextRow === this.map.height || this.containsAny(gridX, nextRow)) {
+                        this.bottom = true;
                     }
                 }
             }
         }
-        if (this.collidedBottom) { // If we are on the ground
-            this.groundUpdates++; // Increase the amount of updates occurred on ground
-        } else { // Otherwise
-            this.groundUpdates = 0; // Reset the ground updates counter
+        if (this.bottom) { // If we are grounded
+            this.groundUpdates++; // Increase the ground updates
+        } else {
+            this.groundUpdates = 0; // Clear the ground updates
         }
     }
 
     /**
-     * Checks all the pieces to see if they contain a
-     * data tile at the specified point
-     * @return boolean If it has data at the specified point
+     *  Check if any pieces contain a tile
+     *  at the respective position
+     *
+     *  @param {number} x The position on the x axis
+     *  @param {number} y The position on the y axis
+     *  @return {boolean} If there is any tiles at the position
      */
-    contains(pieces: Piece[], x: number, y: number): boolean {
-        for (let piece of pieces) {
-            if (piece.contains(x, y)) {
+    containsAny(x: number, y: number): boolean {
+        const pieces: Piece[] = this.map.solid; // The solid map tiles
+        for (let piece of pieces) { // Iterate over the pieces
+            if (piece.contains(x, y)) { // Check if the piece contain a tile
                 return true;
             }
         }
         return false;
     }
-
 }

@@ -1,96 +1,147 @@
-import {GameMap} from "./map/map";
-import {TETRIMINIOS} from "../constants";
-import {createEmptyGrid, deepCopy, log, random} from "../utils";
-import {GameServer} from "../server/server";
-import {BulkMapPacket, createPacket, StopPacket} from "../server/packets";
-import chalk from "chalk";
-import {GameMode} from "./mode/gameMode";
-import {Connection} from "../server/connection";
+import {Server} from "../server/server";
+import {GameMode} from "./mode/gamemode";
+import {Map} from "./map/map";
 import {ControlSwap} from "./mode/modes/controlSwap";
+import {createEmptyMatrix, deepCopy, none, random} from "../utils";
+import {debug, good, okay} from "../log";
+import {SHAPES} from "./map/piece";
+import {Client} from "../server/client";
 
 export class Game {
 
-    created: boolean = false;
-    map: GameMap; // The map which contains the solid tiles
-    server: GameServer; // The server (Which this game is on)
-    started: boolean = false; // If the game has started or not
-    gameMode: GameMode;
+    ready: boolean; // If the game is ready to start
+    server: Server; // The server running this game
+    started: boolean; // If the game has started
+    mode: GameMode; // The current game mode
+    map: Map; // The current game map
 
     /**
-     *  This class stores the core game data along with
-     *  references which each part uses
+     *  This class handles the game logic
+     *  and anything under that
      *
-     *  @param server The current server (for sending packets)
+     *  @param {Server} server The server running this game
      */
-    constructor(server: GameServer) {
+    constructor(server: Server) {
         this.server = server;
-        this.map = new GameMap(this);
-        this.gameMode = new ControlSwap(server);
-    }
-
-    /**
-     *  Resets the map and the game states
-     */
-    reset() {
-        this.map = new GameMap(this);
-        this.gameMode = new ControlSwap(this.server);
+        this.ready = false;
         this.started = false;
-        this.created = false;
-    }
-
-    tetrimino(): number[][] {
-        const id = random(0, TETRIMINIOS.length - 1);
-        return deepCopy(TETRIMINIOS[id]);
+        this.mode = new ControlSwap(this);
+        this.map = new Map(this);
     }
 
     /**
-     *  Asynchronous game update loop, updates collisions, input
-     *  and spawn handling
-     */
-    async update() {
-        if (!this.started) return;
-        await this.gameMode.update();
-    }
-
-    /**
-     *  This function is called whenever the game is lost
-     *  (aka from reaching the top)
-     */
-    gameOver() {
-        this.server.broadcast(createPacket<StopPacket>(8)).then();
-        log('GAME', 'GAME OVER', chalk.bgRed.black);
-        this.started = false;
-    }
-
-    /**
-     *  This function creates and sends a bulk update packet
-     *  which contains all the map data
-     */
-    bulkUpdate(exclude: (connection: Connection) => boolean = _ => false) {
-        this.serializedString().then((serialized: string[]) => { // Generate the serialized data
-            // Broadcast the packet to all the clients
-            this.server.broadcast(createPacket<BulkMapPacket>(11 /* ID = BulkMapPacket */, packet => packet.lines = serialized), exclude).then();
-            // Pretty server logging of whats just happened
-            log('BULK UPDATE', 'SENT', chalk.bgGreen.black);
-        });
-    }
-
-
-    /**
-     *  Converts the serialized data into a list of strings
-     *  which is more efficient for transferring across the
-     *  network
+     *   Chooses a random shape and creates a clone of
+     *   it
      *
-     *  @return string[] The serialized data
+     *   @return {number[][]} The structure of the shape
      */
-    async serializedString(): Promise<string[]> {
-        const serialized: number[][] = await this.serialize();
+    shape(): number[][] {
+        const id: number = random(0, SHAPES.length - 1); // Get a random id
+        return deepCopy(SHAPES[id]); // Clone it
+    }
+
+
+    /**
+     *  Runs whenever the game updates
+     *  (only runs if the game is started)
+     *  updates the game mode
+     *
+     *  @async
+     *  @return {Promise<void>} A promise for when the update is complete
+     */
+    async update(): Promise<void> {
+        if (!this.started) return; // Ignore if not started
+        await this.mode.update(); // Update the game mode
+    }
+
+    /**
+     *  Starts the game, sets ready state to true, runs init
+     *  on mode broadcasts the map size packet and play packet
+     *  then starts the game mode and sets the started state to true
+     *
+     *  @async
+     *  @return {Promise<void>} A promise for when the game is started
+     */
+    async start(): Promise<void> {
+        this.ready = true; // Mark the game as ready
+        await this.mode.init();
+        // Broadcast a MapSizePacket
+        await this.server.broadcast({
+            id: 17,
+            width: this.map.width,
+            height: this.map.height
+        });
+        // Broadcast a PlayPacket
+        await this.server.broadcast({id: 6});
+        await this.mode.start(); // Start the game mode
+        this.started = true; // Mark the game as started
+        good('GAME', `Game Started ${this.server.joined().length}player(s)`);
+    }
+
+    /**
+     *  Sends a bulk update message to the client this contains
+     *  all the pieces of the map serialized to the grid
+     *
+     *  @param {ExclusionRule<Client>} exclude A rule for excluding certain clients
+     */
+    bulkUpdate(exclude: ExclusionRule<Client> = none): void {
+        const _this: Game = this;
+        this.serializeString().then(function (serialized: string[]) { // Get the serialized data
+            // Send a BulkMapPacket to all clients
+            _this.server._broadcast({
+                id: 11,
+                lines: serialized
+            }, exclude);
+            debug('Bulk update sent');
+        }).catch();
+    }
+
+    /**
+     *  Stops the game, resets the game and broadcasts
+     *  the Stop packet
+     */
+    stop(): void {
+        this.reset(); // Reset the game
+        // Send a StopPacket
+        this.server._broadcast({id: 8});
+        okay('GAME', 'Game Over');
+    }
+
+    /**
+     *  Resets the game states, mode and
+     *  creates a new map instance
+     */
+    reset(): void {
+        this.ready = false;
+        this.started = false;
+        this.mode = new ControlSwap(this);
+        this.map = new Map(this);
+    }
+
+    /**
+     *  Called when the game is lost
+     */
+    gameOver(): void {
+        stop();
+    }
+
+    /**
+     *  Converts the serialized data into an array of strings
+     *  instead of arrays of arrays of integers which will
+     *  decrease the amount of time it takes to parse this
+     *  packet
+     *
+     *  @async
+     *  @return {Promise<string[]>} A promise containing the serialized data
+     */
+    async serializeString(): Promise<string[]> {
+        const serialized: number[][] = await this.serialize(); // Serialize the map data
         const rows: string[] = new Array(serialized.length);
-        for (let y = 0; y < rows.length; y++) {
-            let data = '';
-            const row = serialized[y];
+        for (let y = 0; y < rows.length; y++) { // Iterate over the rows
+            let data = ''; // Create an empty string
+            const row: number[] = serialized[y];
             for (let x = 0; x < row.length; x++) {
-                data += `${row[x]}`;
+                data += row[x]; // Append the value to the data
             }
             rows[y] = data;
         }
@@ -98,23 +149,22 @@ export class Game {
     }
 
     /**
-     *  Converts the map pieces into a grid of rows and columns
-     *  based on the shape of the pieces and the values of the
-     *  tiles
+     *  Serializes the map pieces into a grid of
+     *  the map width and height and responses with
+     *  a promise resolved
      *
-     *  @return number[][] The map pieces converted to a grid of rows & columns
+     *  @async
+     *  @return {Promise<number[][]>} A promise containing the serialized data
      */
     async serialize(): Promise<number[][]> {
-        const grid = createEmptyGrid(this.map.width, this.map.height); // Create a grid for the data
-        for (let piece of this.map.solid) { // Loop through all solid pieces
+        const grid: number[][] = createEmptyMatrix(this.map.width, this.map.height);
+        for (let piece of this.map.solid) { // Iterate over all the solid pieces
             for (let y = 0; y < piece.size; y++) { // Loop through the y axis of the piece
                 const relY = piece.y + y; // The tile y axis relative to the grid
                 for (let x = 0; x < piece.size; x++) { // Loop through the x axis of the piece
                     const relX = piece.x + x; // The tile x axis relative to the grid
                     // If the tile is out of bounds we dont serialize it
-                    if (relY < 0 || relX < 0 || relY >= this.map.height || relX >= this.map.width) {
-                        continue;
-                    }
+                    if (relY < 0 || relX < 0 || relY >= this.map.height || relX >= this.map.width) continue;
                     // Get the tile data at the current x and y
                     const tile = piece.tiles[y][x];
                     // If the tile has data then place the data onto the grid
@@ -122,8 +172,8 @@ export class Game {
                 }
             }
         }
-        // Insert any extra tiles from the game mode
-        await this.gameMode.insertTiles(grid);
         return grid;
     }
+
+
 }

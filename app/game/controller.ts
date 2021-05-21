@@ -1,139 +1,161 @@
 import {Game} from "./game";
-import {MOVE_DELAY, PLACE_DELAY} from "../constants";
-import {Piece} from "./map/piece";
+import {Map} from "./map/map";
+import {PacketPipe} from "../server/packet";
 import {Collisions} from "./collisions";
-import {GameMap} from "./map/map";
-import {createPacket, MoveActivePacket, PacketPipe, RotateActivePacket} from "../server/packets";
+import {EMPTY_PIECE, Piece} from "./map/piece";
+
+// The amount of updates that must occur before moving down
+const MOVE_DELAY: number = parseInt(process.env.MOVE_DELAY ?? '4');
+// The amount of updates before a piece will place
+const PLACE_DELAY: number = parseInt(process.env.PLACE_DELAY ?? '1.5');
 
 export class Controller {
 
-    game: Game;
-    pipe: PacketPipe;
-    map: GameMap;
-    collisions: Collisions;
-    moveLeft: boolean = false; // Whether or not we need to move left
-    moveRight: boolean = false; // Whether or not we need to move right
-    moveDown: boolean = false; // Whether or not we need to move down
-    moveRotate: boolean = false; // Whether or not we need to rotate
-    moveUpdates: number = 0;
+    game: Game; // The current game instance
+    pipe: PacketPipe; // The pipe to send packets down
+    map: Map; // The current map instance
+    collisions: Collisions; // The collisions instance
+
+    moveLeft: boolean; // Weather or not to move to the left
+    moveRight: boolean; // Weather or not to move to the right
+    moveDown: boolean; // Whether or not to move down
+    moveRotate: boolean; // Whether or not to rotate
+
+    moveUpdates: number; // The amount of updates passed
 
     /**
-     *  This class contains logic for manipulating the active
-     *  piece based on user input
+     *  This class controls the movement of the current piece
+     *
+     *  @param {Game} game The game instance
+     *  @param {PacketPipe} pipe The pipe to send packets down
      */
-    constructor(game: Game, pipe: PacketPipe, piece: Piece | null) {
-        this.collisions = new Collisions(game, piece);
-        this.pipe = pipe;
+    constructor(game: Game, pipe: PacketPipe) {
         this.game = game;
         this.map = game.map;
-        this._piece = piece;
+        this.pipe = pipe;
+        this.collisions = new Collisions(this.map, EMPTY_PIECE);
+        this._piece = EMPTY_PIECE;
+        this.moveLeft = this.moveRight = this.moveDown = this.moveRotate = false;
+        this.moveUpdates = 0;
     }
 
-    private _piece: Piece | null = null;
+    private _piece: Piece;
 
-    get piece(): Piece | null {
+    /**
+     *  Returns the current piece
+     *
+     *  @return {Piece} The current piece
+     */
+    get piece(): Piece {
         return this._piece;
     }
 
-    set piece(piece: Piece | null) {
+    /**
+     *  Sets the current piece and also sets the
+     *  collisions piece
+     *
+     *  @param {Piece} piece The new piece
+     */
+    set piece(piece: Piece) {
         this._piece = piece;
         this.collisions.piece = piece;
     }
 
     /**
-     *  This function resets all pressed controls
+     *  Reset the requested movements
      */
-    reset() {
-        this.moveLeft = false;
-        this.moveRight = false;
-        this.moveDown = false;
-        this.moveRotate = false;
+    reset(): void {
+        this.moveLeft = this.moveRight = this.moveDown = this.moveRotate = false;
+        this.moveUpdates = 0;
     }
 
-    async updateServer() {
-        if (this.piece == null) return;
-        this.pipe.pipe(createPacket<MoveActivePacket>(14 /* ID = MoveActivePacket */, packet => {
-            if (this.piece == null) return;
-            packet.x = this.piece.x;
-            packet.y = this.piece.y;
-        })).then();
+    /**
+     *  Send a movement update to the client
+     */
+    moveUpdate(): void {
+        // Send a MoveActivePacket
+        this.pipe.pipe({
+            id: 14,
+            x: this.piece.x,
+            y: this.piece.y
+        });
     }
 
-    async update(): Promise<boolean> {
-        await this.collisions.update();
-        const piece = this.piece;
-        let moved: boolean = false;
-        // If there is no active piece ignore everything else
-        if (piece === null) return false;
-        if (this.collisions.collidedBottom) {
-            if (this.collisions.groundUpdates >= PLACE_DELAY) {
-                this.collisions.groundUpdates = 0;
-                const solid: Piece = piece.freeze();
-                this.map.solid.push(solid);
-                this.piece = null;
-                await this.map.cleared();
-                this.game.bulkUpdate();
-                if (solid.atLimit()) {
-                    this.game.gameOver();
+    /**
+     *  Updates the controller logic and movement handling
+     *  and handles solidification of pieces
+     *
+     *  @async
+     *  @return {Promise<void>} A promise for when the update is complete
+     */
+    async update(): Promise<void> {
+        await this.collisions.update(); // Update the collisions
+        if (this.collisions.bottom) { // If we are collided on the bottom
+            // If we have a piece and we have reached the place delay
+            if (!this.piece.empty() && this.collisions.groundUpdates >= PLACE_DELAY) {
+                this.collisions.groundUpdates = 0; // Reset the ground updates
+                this.map.solidify(this.piece); // Solidify the piece
+                await this.map.clearing(); // Clear the full rows
+                this.game.bulkUpdate(); // Send a bulk map update
+                if (this.piece.atLimit()) { // If we have reached the top of the mpa
+                    this.game.gameOver(); // Game over
                 }
-                return false;
+                this.piece = EMPTY_PIECE; // Set an empty piece
             }
         } else {
-            this.collisions.groundUpdates = 0;
-            if (this.moveRotate) {
-                const rotatedPiece: Piece = piece.rotate();
-                if (!this.map.isObstructed(rotatedPiece.tiles, piece.x, piece.y)) {
-                    this.piece = rotatedPiece;
-                    moved = true;
-                    await this.pipe.pipe(createPacket<RotateActivePacket>(15))
+            this.collisions.groundUpdates = 0; // Reset the ground updates
+            if (this.moveRotate) { // If we need to rotated
+                const rotated = this.piece.rotate(); // Create the rotated copy
+                // Make sure the rotated copy wont be obstructed
+                if (!this.map.obstructed(rotated.tiles, rotated.x, rotated.y)) {
+                    this.piece = rotated; // Set the piece to the rotated
+                    // Send a RotateActivePacket
+                    this.pipe.pipe({id: 15});
                 }
                 this.moveRotate = false;
             }
-            if (this.moveUpdates >= MOVE_DELAY) {
-                this.moveUpdates = 0;
-                this.collisions.groundUpdates = 0;
-                const distance: number = this.moveDown ? 4 : 2;
-                for (let y = 0; y < distance; y++) {
-                    // If we have no active piece break out of the loop
-                    if (piece === null) break;
-                    await this.collisions.update(); // Update the collisions every move
-                    // If out bath is obscured break the expression
-                    if (this.map.isObstructed(piece.tiles, piece.x, piece.y + 1)) break
-                    if (!this.collisions.collidedBottom) { // If not collided at the bottom
-                        this.collisions.groundUpdates = 0;
-                        piece.y++; // Move the active piece down
-                        moved = true;
-                        await this.updateServer();
-                    } else {
-                        this.collisions.groundUpdates++;
-                        break;
+            if (this.moveUpdates >= MOVE_DELAY) { // If we have reached the move delay
+                this.moveUpdates = 0;  // Reset the move updates
+                this.collisions.groundUpdates = 0; // Reset the ground updates
+                const distance: number = this.moveDown ? 4 : 2; // Get the distance we need to travel
+                for (let _ = 0; _ < distance; _++) { // Iterate over the distance positions
+                    if (!this.piece.empty()) { // If the piece is not empty
+                        await this.collisions.update(); // Update the collisions
+                        // If the piece is not obstructed
+                        if (this.map.obstructed(this.piece.tiles, this.piece.x, this.piece.y + 1)) break;
+                        if (!this.collisions.bottom) { // If we are collided on the bottom
+                            this.collisions.groundUpdates = 0; // Reset the ground updates
+                            this.piece.y++; // Move the piece down
+                            this.moveUpdate(); // Send a move update
+                        } else {
+                            this.collisions.groundUpdates++; // Increase the ground updates
+                            break;
+                        }
                     }
-
                 }
             } else {
-                this.moveUpdates++;
+                this.moveUpdates++; // Increase the move updates
             }
         }
-        if (this.moveLeft) { // If move left has been requested
-            if (!this.collisions.collidedLeft) { // If we aren't touching anything on the left
-                if (piece == null) return false;
-                if (this.map.isObstructed(piece.tiles, piece.x - 1, piece.y)) return false;
-                piece.x--;
-                moved = true;
-                await this.updateServer();
+        if (this.piece.empty()) return; // If we have an empty piece
+        if (this.moveLeft) { // If we need to move left
+            if (!this.collisions.left) { // If we arent collided left
+                // If we wont be obstructed on the left
+                if (!this.map.obstructed(this.piece.tiles, this.piece.x - 1, this.piece.y)) {
+                    this.piece.x--; // Move to the left
+                    this.moveUpdate(); // Send a move update
+                }
             }
-            this.moveLeft = false;
-        } else if (this.moveRight) { // If move right has been requested
-            if (!this.collisions.collidedRight) { // If we aren't touching anything on the right
-                if (piece == null) return false;
-                if (this.map.isObstructed(piece.tiles, piece.x + 1, piece.y)) return false;
-                piece.x++;
-                moved = true;
-                await this.updateServer();
+            this.moveLeft = false; // We don't need to move anymore
+        } else if (this.moveRight) { // If we need to move right
+            if (!this.collisions.right) { // If we arent collided right
+                // If we wont be obstructed on the right
+                if (!this.map.obstructed(this.piece.tiles, this.piece.x + 1, this.piece.y)) {
+                    this.piece.x++; // Move to the right
+                    this.moveUpdate(); // Send a move update
+                }
             }
-            this.moveRight = false;
+            this.moveLeft = false; // We don't need to move right
         }
-        return moved;
     }
-
 }

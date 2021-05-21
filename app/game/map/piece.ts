@@ -1,50 +1,122 @@
-import {deepCopy, rotateMatrix} from "../../utils";
+const {deepCopy, rotateMatrix} = require('app/utils')
+
+// Stores the structures of each shape
+export const SHAPES = [
+    [
+        [1, 1], // Square
+        [1, 1]
+    ],
+    [
+        [2, 2, 2, 2], // Line
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+    ],
+    [
+        [0, 3, 0], // T
+        [3, 3, 3],
+        [0, 0, 0]
+    ],
+    [
+        [0, 4, 0], // L
+        [0, 4, 0],
+        [0, 4, 4]
+    ],
+    [
+        [5, 0, 0], // Zig Zag left
+        [5, 5, 0],
+        [0, 5, 0]
+    ],
+    [
+        [0, 6, 0], // Zig Zag right
+        [6, 6, 0],
+        [6, 0, 0]
+    ]
+];
+
 
 export class Piece {
 
-    x: number; // The position of this tile on the x axis
-    y: number; // The position of this tile on the y axis
-    tiles: number[][]; // The grid of tiles that make up this piece
-    solid: boolean; // Whether or not the piece is keeping its position
-    size: number; // All pieces have even widths and heights this represents that
+    x: number; // The position of this piece (x axis)
+    y: number; // The position of this piece (y axis)
+    tiles: number[][]; // The layout of this piece (matrix of 0 and >0 representing the shape)
 
-    constructor(x: number, y: number, tiles: number[][], solid: boolean = false) {
+    /**
+     *  This class represents a piece on the game
+     *  grid it contains a x and y position and the
+     *  layout of the piece
+     *
+     *  @param {number} x The position of this piece (x axis)
+     *  @param {number} y The position of this piece (y axis)
+     *  @param {number[][]} tiles The layout of this piece (matrix of 0 and >0 representing the shape)
+     */
+    constructor(x: number, y: number, tiles: number[][]) {
         this.x = x;
         this.y = y;
         this.tiles = tiles;
-        this.solid = solid; // By default the piece is not solid
-        this.size = tiles.length;
-    }
-
-    rotate() {
-        // Return a new piece with the rotation complete
-        return new Piece(this.x, this.y, rotateMatrix(this.tiles))
     }
 
     /**
-     * Checks to see if the coordinates relative to this piece
-     * contain a data tile
-     *
-     * @return boolean if the coordinates contain data
+     *  Get the size of this shape
+     *  (This is not accurate just for iterating)
+     *  @return {number} The size of the piece
      */
-    contains(x: number, y: number): boolean {
-        const size: number = this.size - 1;
-        // Check that the points are within this piece bounds
-        if (x >= this.x
-            && y >= this.y
-            && x <= this.x + size
-            && y <= this.y + size) {
-            const relX: number = x - this.x;
-            const relY: number = y - this.y;
-            const tile: number = this.tiles[relY][relX];
-            if (tile > 0) return true; // If the tile has contains data
-        }
-        return false; // Otherwise false
+    get size(): number {
+        return this.tiles.length;
     }
 
+    /**
+     * Clones the current piece and rotates it
+     * 90deg then returns it
+     *
+     * @return {Piece} The rotated piece
+     */
+    rotate(): Piece {
+        return new Piece(this.x, this.y, rotateMatrix(this.tiles));
+    }
+
+    /**
+     * Clones the current piece
+     *
+     * @return {Piece} The cloned piece
+     */
+    clone(): Piece {
+        return new Piece(this.x, this.y, deepCopy(this.tiles));
+    }
+
+    /**
+     *  Checks to see if there is a tile with
+     *  data at the provided point
+     *  (ignores if outside piece)
+     *
+     *  @param {number} x The x position to check
+     *  @param {number} y The y position to check
+     *  @return {boolean} If the piece contains a tile with data
+     */
+    contains(x: number, y: number): boolean {
+        const insideSize: number = this.size - 1;
+        if (x >= this.x
+            && y >= this.y
+            && x <= this.x + insideSize
+            && y <= this.y + insideSize) { // If the position is inside
+            const relX: number = x - this.x; // Relativize the x axis
+            const relY: number = y - this.y; // Relativize the y axis
+            const tile: number = this.tiles[relY][relX]; // Get the tile
+            if (tile > 0) return true; // If it has data
+        }
+        return false;
+    }
+
+    /**
+     *  Checks if any tiles on the provided
+     *  y axis have data in them
+     *
+     *  @param {number} y The y position to check
+     *  @return {boolean} Whether or not any have data
+     */
     containsAny(y: number) {
-        for (let x = 0; x < this.size; x++) {
-            if (this.contains(x, y)) {
+        for (let x = 0; x < this.size; x++) { // Iterate over the x axis
+            if (this.contains(x, y)) { // If this position contains a tile
                 return true;
             }
         }
@@ -52,69 +124,51 @@ export class Piece {
     }
 
 
-
     /**
-     * Checks to see if any portion of this piece is
-     * touching y level 0 aka the player has lost
+     *  Checks if this piece hits the limit
+     *  of the game area (Game over)
      *
-     * @return boolean Whether or not its touching
+     *  @return {boolean} If it hits the top or not
      */
     atLimit(): boolean {
-        const row: number[] = this.tiles[0]; // Get the first row (can ignore the rest)
-        const gridY: number = this.y;
-        if (gridY <= 0) { // If our grid position is 0 (The top)
-            for (let x = 0; x < row.length; x++) { // Move through all the columns
-                const tile: number = row[x];
-                if (tile > 0) { // If this is a data tile
-                    return true;
-                }
-            }
+        return this.y <= 0 && this.containsAny(this.y);
+    }
+
+    /**
+     *  Checks whether or not this piece has any
+     *  remaining data tiles
+     *
+     *  @return {boolean} If the piece has data tiles or not
+     */
+    hasTiles(): boolean {
+        for (let y = 0; y < this.size; y++) { // Iterate over the y axis
+            if (this.containsAny(y)) return true; // If we have any tiles return true
         }
         return false;
     }
 
-
     /**
-     *  Freezes the piece which creates a new piece with a deep copy
-     *  of the tile data so that it can be modified on the grid
-     *  and sets the piece solid state to true
+     *  More accurately determines height
+     *  by getting each row with a tile in it
      *
-     *  @return Piece The frozen piece
+     *  @return {number} The height of the piece
      */
-    freeze(): Piece {
-        return new Piece(this.x, this.y, deepCopy(this.tiles), true);
-    }
-
-    /**
-     *  Checks if the piece is active or not
-     *  (Whether or not it has remaining tiles)
-     *
-     *  @return boolean If the piece is active or not
-     */
-    isActive(): boolean {
-        for (let y = 0; y < this.size; y++) {
-            for (let x = 0; x < this.size; x++) {
-                const tile: number = this.tiles[y][x];
-                if (tile > 0) return true;
-            }
-        }
-        return false;
-    }
-
-    toString() {
-        return `${this.x}:${this.y}:${this.tiles}:${this.size}:${this.solid}`;
-    }
-
     height(): number {
-        for (let y = this.size - 1; y > 0; y--) {
-            for (let x = 0; x < this.size; x++) {
-                const tile: number = this.tiles[y][x];
-                if (tile > 0) {
-                    return y;
-                }
-            }
+        for (let y = this.size - 1; y > 0; y--) { // Iterate over the y axis starting from the bottom
+            if (this.containsAny(y)) return y; // If we find anything that is the bottom
         }
         return 0;
     }
+
+    /**
+     *  Checks if this piece has no tiles
+     *
+     *  @return {boolean} If the piece has no tiles
+     */
+    empty(): boolean {
+        return this.tiles.length == 0;
+    }
+
 }
 
+export const EMPTY_PIECE = new Piece(-91, -91, []);

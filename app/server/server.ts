@@ -1,264 +1,257 @@
-import {Connection} from "./connection";
-import {v4 as uuidv4} from "uuid";
+import {Client} from "./client";
+import {_p, getPossibleAddresses, none} from "../utils";
 import * as WebSocket from "ws";
-import {Data} from "ws";
-import {GAME_MODES, MIN_PLAYERS, PORT, TIME_TILL_START} from "../constants";
 import {Game} from "../game/game";
-import {createPacket, GameModesPacket, MapSizePacket, PlayPacket, TimeTillStartPacket} from "./packets";
-import {log} from "../utils";
-import chalk from "chalk";
 
-import {networkInterfaces} from "os";
-import {Teamwork} from "../game/mode/modes/teamwork";
-import {ControlSwap} from "../game/mode/modes/controlSwap";
+const {v4} = require('uuid');
+const {okay, good, info, debug} = require('../log');
 
-interface Votes {
-    [key: number]: Connection[];
-}
+// The port the server will run on
+const PORT: number = parseInt(process.env.PORT ?? '80');
+// The host the server will run on
+const HOST: string = process.env.HOST ?? '0.0.0.0';
+// The minimum number of players required to start
+const MIN_PLAYERS: number = parseInt(process.env.MIN_PLAYERS ?? '2');
+// The amount of updates to wait for before starting the game
+const START_DELAY: number = parseInt(process.env.START_DELAY ?? '5');
 
-class GameServer {
-    connections: Connection[]; // The current connections
-    server: WebSocket.Server; // The web socket server instance
+export class Server {
+
     game: Game; // The current game instance
-    startTimeout: NodeJS.Timeout | undefined; // The timeout for when the game will start
-    votes: Votes = {};
+    clients: Client[]; // The connected clients
+    socketServer: WebSocket.Server; // The web socket server
+
+    startUpdates: number; // The number of updates passed towards starting
 
     constructor() {
-        this.game = new Game(this); // Create a new game instance
-        this.connections = []; // Assign connections to an empty row
-        this.server = new WebSocket.Server({ // Create a server with the requested port
+        this.game = new Game(this); // Create a new game
+        this.clients = []; // Set the clients to an empty array
+        this.socketServer = this.createSocketServer(); // Create a new socket server
+        this.startUpdates = 0; // Set the start updates to zero
+    }
+
+    /**
+     *  Creates a new web socket server with the relevant
+     *  details and assigns event listeners
+     *
+     *  @return {WebSocket.Server} The web socket server
+     */
+    createSocketServer(): WebSocket.Server {
+        // Create a new server instance
+        const server: WebSocket.Server = new WebSocket.Server({
             port: PORT,
-            host: '0.0.0.0'
+            host: HOST
         });
-        this.server.on('listening', () => {
-            const interfaces = networkInterfaces();
-            log('ADDRESS', 'POSSIBLE ADDRESSES', chalk.bgYellow.black);
-            for (const name in interfaces) {
-                // Make sure its a valid interface and not for WSL or a loopback/pseudo interface
-                if (!interfaces.hasOwnProperty(name) || name.indexOf("(WSL)") >= 0 || name.indexOf('Loopback') >= 0 || name.indexOf('Pseudo-Interface') >= 0) continue;
-                // Get its children
-                const values: any = interfaces[name];
-                for (let value of values) {
-                    const family = value.family;
-                    if (family === 'IPv4') { // If its IPv4
-                        const address = value.address;
-                        // Log the address
-                        log('ADDRESS', name + ' : ' + address, chalk.bgGreen.black)
-                    }
-                }
+        // Subscribe a listening listener
+        server.on('listening', function () {
+            debug('Server listening'); // Debug log the server is listening
+            const addresses: string[] = getPossibleAddresses(); // Get possible addresses
+            okay('ADDRESS', 'Listing possible addresses:');
+            // List the possible address
+            for (let address of addresses) {
+                okay('ADDRESS', address.replace(':', ' : '));
             }
-            let addr = this.server.address();
-            if (typeof addr !== 'string') { // If the address is the address object
-                addr = addr.address; // Grab the address property
-            }
-            log('OPEN', `AWAITING CONNECTIONS ON ws://${addr}:${PORT}`, chalk.bgGreen.black)
+            // Log the listening port
+            good('OPEN', 'Awaiting connections on port ' + PORT);
         });
-        // When the server is listening print a message to the console
-        // When a connection is received call the connection function
-        this.server.on('connection', (session: WebSocket) => this.connection(session));
+        const _this: Server = this;
+        // Subscribe a connection listener
+        server.on('connection', function (socket: WebSocket) {
+            debug('Connection opened'); // Debug log connection opened
+            _this.connection(socket); // Connect the socket
+        })
+        return server;
     }
 
     /**
-     *  Called when a connection is created
+     *  Connects a socket by creating a client instance
+     *  and subscribing it to events
      *
-     *  @param session The websocket client session
+     *  @param {WebSocket} socket The socket to connect
      */
-    connection(session: WebSocket): void {
-        const connection = new Connection(this, session); // Create a new connection
-        connection.log('OPEN', 'CONNECTED', chalk.bgGreen.black); // Print it to the console
-        this.connections.push(connection); // Add it to the list of connections
-        session.on('message', (data: Data) => connection.message(data)); // When a message is received call it on the connection
-        session.on('close', () => connection.close()); // When a connection is closed close the object as well
+    connection(socket: WebSocket): void {
+        const client: Client = new Client(this, socket); // Create a client
+        this.clients.push(client); // Add the client to the clients
+        info('OPEN', 'Connected', client.uuid); // Log the connection
+        // Subscribe a message listener
+        socket.on('message', function (data: WebSocket.Data) {
+            debug(data, client.uuid); // Debug log the data
+            client.data(data); // Process the data
+        });
+        // Subscribe a close listener
+        socket.on('close', function () {
+            client.close(); // Close the client connection
+        })
     }
 
     /**
-     *  Called when a player joins the game
+     *  Sends the specified packet to any client that is
+     *  not excluded by the exclusion rule
      *
-     *  @param connection The connection that joined
+     *  @param {Object} packet The packet ot send
+     *  @param {ExclusionRule<Client>} exclude The exclusion callback
+     *  @return {Promise<void>} A promise resolved when all are sent
      */
-    join(connection: Connection): void {
-        this.game.gameMode.join(connection).then();
-        connection.send(createPacket<GameModesPacket>(20, packet => packet.modes = GAME_MODES)).then();
-    }
-
-    /**
-     *  Called when a player submits input
-     *
-     *  @param connection The connection the input came from
-     *  @param input The input that was pressed
-     *
-     */
-    input(connection: Connection, input: string): void {
-        if (!this.game.started) return;
-        this.game.gameMode.input(connection, input).then();
-    }
-
-    vote(connection: Connection, option: number): void {
-        for (let id in this.votes) {
-            if (this.votes.hasOwnProperty(id)) {
-                const connections: Connection[] = this.votes[id];
-                if (connection.uuid in connections.map(c => c.uuid)) {
-                    this.votes[id] = connections.filter(c => c.uuid !== connection.uuid);
+    async broadcast(packet: any, exclude: ExclusionRule<Client> = none): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const promises: Promise<void>[] = []; // Empty array of promises
+            for (let client of this.clients) { // Iterate the connected clients
+                // Make sure the client has joined and isn't excluded
+                if (client.name !== undefined && !exclude(client)) {
+                    // Create a new send promise
+                    promises.push(client.send(packet));
                 }
             }
-        }
-        if (!this.votes[option]) this.votes[option] = [];
-        this.votes[option].push(connection);
-    }
-
-    votedMode(): number {
-        let highestID: number = 0;
-        let highestVotes: number = 0;
-        for (let id in this.votes) {
-            if (this.votes.hasOwnProperty(id)) {
-                const connections: Connection[] = this.votes[id];
-                if (connections.length > highestVotes) {
-                    highestID = parseInt(id);
-                    highestVotes = connections.length;
-                }
-            }
-        }
-        return highestID;
+            // Wait till all resolved
+            Promise.allSettled(promises).then(_ => resolve).catch(reject);
+        })
     }
 
     /**
-     *  Called whenever the server needs to be updated
-     *  handles all logic including starting the game
-     *  and game logic
+     *  Sends the specified packet to any client that is
+     *  not excluded by the exclusion rule (ignores result)
+     *
+     *  @param {Object} packet The packet ot send
+     *  @param {ExclusionRule<Client>} exclude The exclusion callback
      */
-    async update() {
-        if (!this.game.created) { // WAITING FOR GAME
-            if (this.active().length >= MIN_PLAYERS) { // If we have the needed amount of players
-                this.startGame(); // Start the game
-            }
-        } else { // GAME ALREADY RUNNING
-            await this.game.update();
+    _broadcast(packet: any, exclude: ExclusionRule<Client> = none): void {
+        _p(this.broadcast(packet, exclude));
+    }
+
+    /**
+     *  Called when a client joins Broadcasts a
+     *  PlayerJoinPacket to all other connections
+     *
+     *  @param {Client} client The client that joined
+     */
+    join(client: Client): void {
+        // Broadcast a PlayerJoinPacket
+        this._broadcast({
+            id: 4,
+            uuid: client.uuid,
+            name: client.name
+        }, client.isNotSelf);
+    }
+
+    /**
+     *  Called when a client leaves broadcasts a
+     *  PlayerLeavePacket to all other connections
+     *  if the client was named
+     *
+     *  @param {Client} client The client that left
+     *  @param {string} reason The reason for leaving
+     */
+    leave(client: Client, reason: string): void {
+        if (client.name !== undefined) {
+            // Broadcast a PlayerLeavePacket
+            this._broadcast({
+                id: 5,
+                name: client.name,
+                reason: reason,
+            });
         }
     }
 
     /**
-     *  Called when the game is being started informs the clients
-     *  that the game is starting and tells the clients when the
-     *  game will be starting
+     *  Called when a client closes its connection
+     *
+     *  @param {Client} client The client that closed its connection
+     *  @param {string} reason The reason for closing
      */
-    startGame(): void {
-        this.game.created = true;
-        // Tell the clients when the game will start
-        this.broadcast(createPacket<TimeTillStartPacket>(7 /* ID = TimeTillStartPacket */, packet => packet.time = TIME_TILL_START)).then()
-        log('GAME', `STARTING IN ${TIME_TILL_START}s`, chalk.bgYellow.black);
-        // Set a timeout for when the game will start
-        this.startTimeout = setTimeout(async () => {
-            if (this.game.created) { // Make sure the game hasn't been stopped
-                const mode: number = this.votedMode();
-                let modeName: string = ''
-                if (mode === 1) {
-                    modeName = 'Teamwork'
-                    this.game.gameMode = new Teamwork(this);
+    close(client: Client, reason: string): void {
+        this.clients = this.clients.filter(client.isNotSelf);
+        okay('CLOSED', reason, client.uuid);
+        if (this.clients.length < MIN_PLAYERS) stop();
+    }
+
+    /**
+     *  Called when a client votes on a gamemode
+     *
+     *  @param {Client} client The client that voted
+     *  @param {number} option The option the client voted for
+     */
+    vote(client: Client, option: number): void {
+
+    }
+
+    /**
+     *  Updates the game world and handles
+     *  any data that needs to be processed
+     *  a lot
+     *
+     *  @async
+     */
+    async update(): Promise<void> {
+        if (!this.game.ready) {
+            const joined: Client[] = this.joined();
+            if (joined.length >= MIN_PLAYERS) {
+                this.game.ready = true;
+            }
+        } else {
+            if (!this.game.started) {
+                if (this.startUpdates >= START_DELAY) {
+                    this.startUpdates = 0;
+                    await this.game.start();
                 } else {
-                    modeName = 'Control Swap'
-                    this.game.gameMode = new ControlSwap(this)
+                    this.startUpdates++;
                 }
-                this.votes = {};
-                log('GAME', `PLAYING MODE ${modeName}`, chalk.bgYellow.black);
-                await this.game.gameMode.init(); // Initialize the gamemode
-                Promise.allSettled([
-                    // Broadcast the map size paket to all the clients
-                    this.broadcast(createPacket<MapSizePacket>(17 /* ID = MapSizePacket */, packet => {
-                        packet.width = this.game!.map.width; // Set the packet width
-                        packet.height = this.game!.map.height; // Set the packet height
-                    })),
-                    // Broadcast the play packet to all the clients
-                    this.broadcast(createPacket<PlayPacket>(6 /* ID = PlayPacket */)),
-                ]).then();
-                await this.game.gameMode.start();
-                this.game.started = true; // Set the game to started
-                log('GAME', 'STARTED', chalk.bgGreen.black);
-            }
-        }, TIME_TILL_START * 1000);
-    }
-
-    /**
-     *  Called when the game is stopped, clears timeouts
-     *  and stops the gamemode and them clears the current game
-     */
-    stopGame(): void {
-        if (this.startTimeout !== undefined) clearTimeout(this.startTimeout); // Clear the timeout
-        log('GAME', 'STOPPING', chalk.bgYellow.black); // Print to the console
-        this.game.gameMode.stop().then(); // Stop the game mode
-        this.game.reset(); // Reset the game world
-        log('GAME', 'STOPPED', chalk.bgRed.black); // Print to the console
-    }
-
-    /**
-     *  Broadcast the packet to all the connected clients
-     *  except for those excluded in the exclusion function
-     *
-     *  @param packet The packet of data to send
-     *  @param exclude The function for choosing which clients are excluded
-     */
-    async broadcast(packet: any, exclude: ((connection: Connection) => boolean) = _ => false): Promise<void> {
-        const promises: Promise<void>[] = [];
-        for (let connection of this.connections) {
-            if (connection.name !== null && !exclude(connection)) {
-                promises.push(connection.send(packet));
+            } else {
+                await this.game.update();
             }
         }
-        await Promise.allSettled(promises);
     }
 
     /**
-     *  Returns whether or not the name can be used
+     *  Creates a unique identified and makes
+     *  sure none of the other clients are using it
      *
-     *  @param name The name to check
-     *  @return boolean Whether or not it can be used
+     *  @return {string} The unique identified
      */
-    isNameUsable(name: string): boolean {
-        for (let connection of this.connections) { // Loop the connections
-            if (connection.name === name) { // If the name matches
-                return false; // The name is taken
+    createUUID(): string {
+        const uuid: string = v4(); // Creates a uuid
+        for (let client of this.clients) { // Iterate of the the clients
+            if (client.uuid === uuid) { // If the uuid matches
+                return this.createUUID(); // Create a new uuid
             }
         }
-        return true; // The name is not taken
+        return uuid;
     }
 
     /**
-     *  Generates a UUID for a connection
+     *  Checks if the provided name is used
+     *  by any of the other clients
      *
-     *  @return string The generated UUID
+     *  @param {string} name The name to check
+     *  @return {boolean} If the name is already in use
      */
-    uuid(): string {
-        const uuid = uuidv4(); // Generate a UUID
-        for (let connection of this.connections) { // Loop through the connections
-            if (connection.uuid === uuid) { // Check if the UUID matches
-                return this.uuid(); // Generate a new UUID
+    isNameUsed(name: string): boolean {
+        for (let client of this.clients) { // Iterate over the clients
+            if (client.name === name) { // If the name matches
+                return true;
             }
         }
-        return uuid; // Return the UUID
+        return false;
     }
 
     /**
-     *  Closes a connection with a client
+     *  Called when a client sends input
      *
-     *  @param connection The connection to close
-     *  @param reason The reason for the close or null
+     *  @param {Client} client The client sending the input
+     *  @param {string} key The input value
      */
-    close(connection: Connection, reason: string | null = null): void {
-        // Remove this connection from the list
-        this.connections = this.connections.filter(c => c.uuid !== connection.uuid);
-        connection.log('CLOSED', reason ?? '', chalk.bgYellow.black); // Print to the console
-        this.game.gameMode.close(connection, reason).then(); // Trigger the close function on the game mode
+    input(client: Client, key: string): void {
+        if (this.game.started) {
+            _p(this.game.mode.input(client, key));
+        }
     }
 
     /**
-     *  Gets the active connections
-     *  (named connections)
+     *  Gets the clients that have joined
+     *  the game
      *
-     *  @return Connection[] The active connections
+     *  @return {Client[]} The clients that have joined
      */
-    active(): Connection[] {
-        // Filter the active connections
-        return this.connections.filter(connection => connection.name !== null);
+    joined(): Client[] {
+        return this.clients.filter(c => c.joined());
     }
 }
-
-export {GameServer}

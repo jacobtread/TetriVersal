@@ -1,117 +1,126 @@
-import chalk from "chalk";
+import {NetworkInterfaceInfo, networkInterfaces} from "os";
 
 /**
- *  Creates deep clone/copy of an object/array
- *  uses JSON parse and stringify to create
+ *  Creates a deep copy (clone) of an
+ *  object or array us ing JSON.parse and
+ *  JSON.stringify
  *
- *  @param o The object to clone
- *  @return O The clone of the object
+ *  @param {T} object The object to copy/clone
+ *  @return {T} A copy/clone of the original object
  */
-function deepCopy<O>(o: O): O {
-    return JSON.parse(JSON.stringify(o));
+export function deepCopy<T = object>(object: T): T {
+    return JSON.parse(JSON.stringify(object));
 }
 
 /**
- *  Creates an two-dimensional grid of zeros
- *  of the provided with and height
+ *  Creates an empty matrix of zero's
+ *  that matches the provided width and height
+ *  (width being columns and height being rows)
  *
- *  @param width The width of the grid
- *  @param height The height of the grid
- *  @return number[][] The empty grid
+ *  @param {number} width The width of each row
+ *  @param {number} height The total number of rows
+ *  @return {number[][]} The matrix of zeros
  */
-function createEmptyGrid(width: number, height: number): number[][] {
-    const grid = [];
-    for (let y = 0; y < height; y++) { // Loop over the full map height
-        grid[y] = new Array(width).fill(0); // Fill the grid data with zeros
+export function createEmptyMatrix(width: number, height: number): number[][] {
+    const grid: number[][] = []; // Create the base empty array
+    for (let y = 0; y < height; y++) { // Iterate through the total number of rows
+        grid[y] = new Array(width).fill(0); // Set the row to an array of zero's matching the width
     }
     return grid;
 }
 
 /**
- *  Rotates a matrix/grid of tiles 90degrees
- *  (Used to rotate the tetris pieces)
+ *  Rotates a matrix of numbers 90deg
+ *  (Black magic)
  *
- *  @param matrix The matrix to rotate
- *  @return number[][] A rotated clone of the original matrix
+ *  @param {number[][]} matrix The matrix to rotate
+ *  @return {number[][]} A clone of the original matrix that is rotated
  */
-function rotateMatrix(matrix: number[][]): number[][] {
-    let output: number[][] = deepCopy(matrix); // Copy the original matrix
-    const size: number = output.length; // The size of the matrix
+export function rotateMatrix(matrix: number[][]): number[][] {
+    const rotated: number[][] = deepCopy(matrix); // Create a copy of the original
+    const size: number = rotated.length;
     const x: number = Math.floor(size / 2);
     const y: number = size - 1;
     for (let i = 0; i < x; i++) {
         for (let j = i; j < y - i; j++) {
-            const k = output[i][j];
-            output[i][j] = output[y - j][i];
-            output[y - j][i] = output[y - i][y - j];
-            output[y - i][y - j] = output[j][y - i];
-            output[j][y - i] = k;
+            const temp: number = rotated[i][j];
+            rotated[i][j] = rotated[y - j][i];
+            rotated[y - j][i] = rotated[y - i][y - j];
+            rotated[y - i][y - j] = rotated[j][y - i];
+            rotated[j][y - i] = temp;
         }
     }
-    return output;
+    return rotated;
 }
 
 /**
- *  Generates random number between the specified
- *  values (Number is floored to an integer)
+ *  Generates a random number (Integer) between the minimum
+ *  and maximum values
  *
- *  @param min The minimum number to generate
- *  @param max The maximum number to generate
- *  @return number The generated number
+ *  @param {number} min The minimum value
+ *  @param {number} max The maximum value
+ *  @return {number} The random number
  */
-function random(min: number, max: number): number {
+export function random(min: number, max: number): number {
     min = Math.ceil(min);
     max = Math.floor(max);
     return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
 /**
- *  Centers the provided text with spaces
- *  so that it takes up the requested width
- *
- *  @param text The text to align
- *  @param width The width to center too
+ *  Returns false to any value provided
+ *  @param {Object} _ any value
+ *  @return {boolean} false
  */
-function centerText(text: string, width: number): string {
-    const diff = Math.floor((width / 2) - (text.length / 2)); // Get the width difference
-    text = ' '.repeat(diff) + text + ' '.repeat(diff); // Add the space padding
-    return text;
+export function none(_: any): boolean {
+    return false;
 }
 
 /**
- *  Fancy logging with colors and suffixes
- *
- *  @param title The title of the log
- *  @param _message The message of the log
- *  @param titleColor Chalk color function for the title color
- *  @param messageColor Chalk color function for the message color
- *  @param suffix A suffix message to append to the end of the log
- *  @param suffixColor The color of the suffix message
+ *  Returns true to any value provided
+ *  @param {Object} _ any value
+ *  @return {boolean} true
  */
-function log(
-    title: string,
-    _message: any,
-    titleColor = chalk.bgYellow.black,
-    messageColor = chalk.bgHex('#111111').gray,
-    suffix: string | null = null,
-    suffixColor = chalk.hex('#222222')
-) {
-    const message = typeof _message === 'string' ? _message as string : JSON.stringify(_message);
-    title = centerText(title, 15);
-    if (title.length < 15) {
-        title = ' '.repeat(15 - title.length) + title;
-    }
-    if (suffix !== null) {
-        console.log(titleColor(title), messageColor(message), suffixColor(suffix))
-    } else {
-        console.log(titleColor(title), messageColor(message))
-    }
+export function all(_: any): boolean {
+    return true;
 }
 
-export {
-    log,
-    deepCopy,
-    rotateMatrix,
-    random,
-    createEmptyGrid
+/**
+ *  Returns a list of possible ip addresses that
+ *  the server could be running on
+ *  (get interface addresses)
+ *
+ *  @return {string[]} The list of addresses (e.g name:address)
+ */
+export function getPossibleAddresses(): string[] {
+    const addresses: string[] = [];
+    const interfaces: NodeJS.Dict<NetworkInterfaceInfo[]> = networkInterfaces();
+    for (const name in interfaces) {
+        // Ignore any pseudo or loopback interfaces
+        if (!interfaces.hasOwnProperty(name)
+            || name.indexOf("(WSL)") >= 0
+            || name.indexOf('Loopback') >= 0
+            || name.indexOf('Pseudo-Interface') >= 0
+            || name == "lo") continue;
+        const values: any = interfaces[name];
+        for (let value of values) {
+            const family = value.family;
+            if (family !== 'IPv4') continue;
+            const address = value.address;
+            // Store the address
+            addresses.push(name + ':' + address);
+        }
+    }
+    return addresses;
+}
+
+/**
+ *  Adds then and catch calls to the provided
+ *  promise so my ide wont yell at me for not
+ *  handling them
+ *
+ *  @param {Promise<Object>} promise The promise
+ */
+export function _p(promise: Promise<any>): void {
+    promise.then().catch();
 }
