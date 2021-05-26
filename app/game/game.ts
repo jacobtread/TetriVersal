@@ -80,7 +80,7 @@ export class Game {
         await this.server.broadcast({id: 6});
         await this.mode.start(); // Start the game mode
         this.started = true; // Mark the game as started
-        good('GAME', `Game Started ${this.server.joined().length}player(s)`);
+        good('GAME', `Game Started ${this.server.joined().length} player(s)`);
     }
 
     /**

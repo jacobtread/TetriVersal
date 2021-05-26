@@ -96,7 +96,7 @@ export class Teamwork extends GameMode {
         data.client._send({
             id: 13,
             tile: data.nextShape
-        })
+        });
     }
 
     /**

@@ -2,6 +2,7 @@ import {Client} from "./client";
 import {_p, ExclusionRule, getPossibleAddresses, none} from "../utils";
 import * as WebSocket from "ws";
 import {Game} from "../game/game";
+import {UPDATE_DELAY} from "../app";
 
 const {v4} = require('uuid');
 const {okay, good, debug} = require('../log');
@@ -192,6 +193,11 @@ export class Server {
                     await this.game.start();
                 } else {
                     this.startUpdates++;
+                    const time: number = ((START_DELAY - this.startUpdates) * UPDATE_DELAY) / 1000;
+                    this._broadcast({
+                        id: 7,
+                        time: Math.ceil(time)
+                    });
                 }
             } else {
                 await this.game.update();

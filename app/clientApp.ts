@@ -1,3 +1,4 @@
+require('dotenv').config();
 import {createEmptyMatrix, deepCopy, random} from "./utils";
 import WebSocket, {Data} from "ws";
 import {EMPTY_PIECE, Piece} from "./game/map/piece";
