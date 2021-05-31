@@ -31,7 +31,6 @@ export class Collisions {
      */
     reset(): void {
         this.bottom = this.left = this.right = false; // Set all collisions to false
-        this.groundUpdates = 0; // Reset the ground updates
     }
 
     /**
@@ -54,15 +53,15 @@ export class Collisions {
                 if (tile > 0) {
                     const prevCol: number = gridX - 1;
                     // Check if the previous column is outside the map or contains a tile
-                    if (prevCol === -1 || this.containsAny(prevCol, gridY)) {
+                    if (prevCol === -1 || this.map.containsAny(prevCol, gridY)) {
                         this.left = true;
                     }
                     const nextCol: number = gridX + 1;
                     // Check if the next column is outside the map or contains a tile
-                    if (nextCol === this.map.width || this.containsAny(nextCol, gridY)) {
+                    if (nextCol === this.map.width || this.map.containsAny(nextCol, gridY)) {
                         this.right = true;
                     }
-                    if (nextRow === this.map.height || this.containsAny(gridX, nextRow)) {
+                    if (nextRow === this.map.height || this.map.containsAny(gridX, nextRow)) {
                         this.bottom = true;
                     }
                 }
@@ -75,21 +74,4 @@ export class Collisions {
         }
     }
 
-    /**
-     *  Check if any pieces contain a tile
-     *  at the respective position
-     *
-     *  @param {number} x The position on the x axis
-     *  @param {number} y The position on the y axis
-     *  @return {boolean} If there is any tiles at the position
-     */
-    containsAny(x: number, y: number): boolean {
-        const pieces: Piece[] = this.map.solid; // The solid map tiles
-        for (let piece of pieces) { // Iterate over the pieces
-            if (piece.contains(x, y)) { // Check if the piece contain a tile
-                return true;
-            }
-        }
-        return false;
-    }
 }

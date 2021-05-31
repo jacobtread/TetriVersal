@@ -2,11 +2,13 @@ import {Server} from "../server/server";
 import {GameMode} from "./mode/gamemode";
 import {Map} from "./map/map";
 import {ControlSwap} from "./mode/modes/controlSwap";
-import {createEmptyMatrix, deepCopy, ExclusionRule, none, random} from "../utils";
+import {deepCopy, ExclusionRule, none, random} from "../utils";
 import {debug, good, okay} from "../log";
 import {SHAPES} from "./map/piece";
 import {Client} from "../server/client";
-import {Teamwork} from "./mode/modes/teamwork";
+
+// The amount of updates to wait before spawning a new piece
+export const SPAWN_DELAY: number = parseInt(process.env.SPAWN_DELAY ?? '3');
 
 export class Game {
 
@@ -91,7 +93,7 @@ export class Game {
      */
     bulkUpdate(exclude: ExclusionRule<Client> = none): void {
         const _this: Game = this;
-        this.serializeString().then(function (serialized: string[]) { // Get the serialized data
+        this.serialize().then(function (serialized: string[]) { // Get the serialized data
             // Send a BulkMapPacket to all clients
             _this.server._broadcast({
                 id: 11,
@@ -140,45 +142,18 @@ export class Game {
      *  @async
      *  @return {Promise<string[]>} A promise containing the serialized data
      */
-    async serializeString(): Promise<string[]> {
-        const serialized: number[][] = await this.serialize(); // Serialize the map data
-        const rows: string[] = new Array(serialized.length);
+    async serialize(): Promise<string[]> {
+        const map: number[][] = this.map.grid; // Serialize the map data
+        const rows: string[] = new Array(map.length);
         for (let y = 0; y < rows.length; y++) { // Iterate over the rows
             let data = ''; // Create an empty string
-            const row: number[] = serialized[y];
+            const row: number[] = map[y];
             for (let x = 0; x < row.length; x++) {
                 data += row[x]; // Append the value to the data
             }
             rows[y] = data;
         }
         return rows;
-    }
-
-    /**
-     *  Serializes the map pieces into a grid of
-     *  the map width and height and responses with
-     *  a promise resolved
-     *
-     *  @async
-     *  @return {Promise<number[][]>} A promise containing the serialized data
-     */
-    async serialize(): Promise<number[][]> {
-        const grid: number[][] = createEmptyMatrix(this.map.width, this.map.height);
-        for (let piece of this.map.solid) { // Iterate over all the solid pieces
-            for (let y = 0; y < piece.size; y++) { // Loop through the y axis of the piece
-                const relY = piece.y + y; // The tile y axis relative to the grid
-                for (let x = 0; x < piece.size; x++) { // Loop through the x axis of the piece
-                    const relX = piece.x + x; // The tile x axis relative to the grid
-                    // If the tile is out of bounds we dont serialize it
-                    if (relY < 0 || relX < 0 || relY >= this.map.height || relX >= this.map.width) continue;
-                    // Get the tile data at the current x and y
-                    const tile = piece.tiles[y][x];
-                    // If the tile has data then place the data onto the grid
-                    if (tile > 0) grid[relY][relX] = tile;
-                }
-            }
-        }
-        return grid;
     }
 
 

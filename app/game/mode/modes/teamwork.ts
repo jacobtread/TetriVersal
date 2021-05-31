@@ -1,9 +1,9 @@
 import {GameMode} from "../gamemode";
 import {Client} from "../../../server/client";
 import {Controller} from "../../controller";
-import {Map as GameMap} from "../../map/map";
 import {Piece} from "../../map/piece";
 import {random} from "../../../utils";
+import {SPAWN_DELAY} from "../../game";
 import Dict = NodeJS.Dict;
 
 interface ClientData {
@@ -13,8 +13,10 @@ interface ClientData {
     nextShape: number[][]; // The next shape for this client
 }
 
-// The amount of updates to wait before spawning a new piece
-const SPAWN_DELAY: number = parseInt(process.env.SPAWN_DELAY ?? '3');
+// The grid width of a teamwork map
+const TEAMWORK_WIDTH: number = parseInt(process.env.TEAMWORK_WIDTH ?? '32');
+// The grid height of a teamwork map
+const TEAMWORK_HEIGHT: number = parseInt(process.env.TEAMWORK_HEIGHT ?? '22');
 
 export class Teamwork extends GameMode {
 
@@ -27,9 +29,10 @@ export class Teamwork extends GameMode {
      *  @return {Promise<void>} A promise for when its done
      */
     async init(): Promise<void> {
-        const map: GameMap = this.game.map;
-        map.width = parseInt(process.env.TEAMWORK_WIDTH ?? '32');
-        map.height = parseInt(process.env.TEAMWORK_HEIGHT ?? '22');
+        this.game.map.resize(
+            TEAMWORK_WIDTH,  /* Teamwork Swap Width */
+            TEAMWORK_HEIGHT  /* Teamwork Swap Width */
+        )
     }
 
     /**

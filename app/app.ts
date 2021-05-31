@@ -1,7 +1,6 @@
 require('dotenv').config();
 import {Server} from "./server/server";
 
-
 // The delay in ms before the update is run
 export const UPDATE_DELAY: number = parseInt(process.env.UPDATE_DELAY ?? '50');
 

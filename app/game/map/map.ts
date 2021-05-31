@@ -1,12 +1,13 @@
 import {Game} from "../game";
 import {Piece} from "./piece";
+import {createEmptyMatrix} from "../../utils";
 
 export class Map {
 
     game: Game; // The game instance
     width: number; // The width of the map
     height: number; // The height of the map
-    solid: Piece[]; // The solid pieces in the map
+    grid: number[][]; // The grid containing the solid data
 
     /**
      * This class contains the data and logic for the map and
@@ -20,14 +21,19 @@ export class Map {
         this.game = game;
         this.width = width;
         this.height = height;
-        this.solid = [];
+        this.grid = [];
+        this.resize(width, height);
+    }
+
+    resize(width: number, height: number) {
+        this.grid = createEmptyMatrix(width, height);
     }
 
     /**
      *  Clears the piece data stored in this map
      **/
     reset(): void {
-        this.solid = [];
+        this.resize(this.width, this.height)
     }
 
     /**
@@ -35,8 +41,16 @@ export class Map {
      *  solid pieces array
      */
     solidify(piece: Piece): void {
-        const clone: Piece = piece.clone();
-        this.solid.push(clone);
+        const size: number = piece.size;
+        for (let y = 0; y < size; y++) {
+            const relY: number = piece.y + y;
+            for (let x = 0; x < size; x++) {
+                const relX: number = piece.x + x;
+                if (relY < 0 || relX < 0 || relY >= this.height || relX >= this.width) continue;
+                const tile: number = piece.tiles[y][x];
+                if (tile > 0) this.grid[relY][relX] = tile
+            }
+        }
         if (piece.atLimit()) { // If we have reached the top of the mpa
             this.game.gameOver(); // Game over
         }
@@ -50,26 +64,22 @@ export class Map {
      */
     async clearing(): Promise<void> {
         // Create a new array of scores each set to zero
-        const rowScores: number[] = new Array(this.height).fill(0);
-        for (let piece of this.solid) { // Iterate over the pieces
-            for (let y = 0; y < piece.size; y++) { // Iterate over the y axis
-                const gridY: number = piece.y + y; // Relativize the y position
-                let total: number = 0; // The total number of data tiles in this row
-                for (let x = 0; x < piece.size; x++) { // Iterate over the x axis
-                    const tile = piece.tiles[y][x]; // Get the tile
-                    if (tile > 0) total++; // If the tile has data increase the total
-                }
-                rowScores[gridY] += total; // Add the total to the row score
+        const rowScores: number[] = new Array(this.height);
+        for (let y = 0; y < this.grid.length; y++) {
+            const row: number[] = this.grid[y];
+            let total: number = 0;
+            for (let x = 0; x < row.length; x++) {
+                const tile: number = row[x];
+                if (tile > 0) total++;
             }
+            rowScores[y] = total;
         }
         const cleared: number[] = [];
         for (let y = 0; y < rowScores.length; y++) { // Iterate over the rows
             const score = rowScores[y]; // Get the row score
             if (score === this.width) { // If the score matches the width then the row is clear
                 cleared.push(y); // Push to the cleared rows
-                await this.clear(y).then(_ => { // Clear the row
-                    return this.moveDown(y); // Move the other rows down
-                });
+                await this.clear(y);
             }
         }
         this.game.mode.cleared(cleared).then().catch(); // Pass the clearing data to the game mode
@@ -82,29 +92,11 @@ export class Map {
      *  @return {Promise<void>} A promise for when the row is cleared
      */
     async clear(y: number): Promise<void> {
-        for (let piece of this.solid) { // Iterate over the pieces
-            if (y >= piece.y && y <= piece.y + piece.size - 1) { // Check that its inside the piece
-                const relY = y - piece.y; // Relativize the y position
-                piece.tiles[relY].fill(0); // Fill the row with zeros
-            }
-        }
-        // Remove pieces that have no tiles
-        this.solid = this.solid.filter(piece => piece.hasTiles());
-    }
-
-    /**
-     *  Moves all rows before the chosen row down
-     *
-     *  @param {number} y The row to move before
-     *  @return {Promise<void>} A promise for when the rows are moved
-     */
-    async moveDown(y: number): Promise<void> {
-        for (let piece of this.solid) { // Iterate over the pieces
-            if (piece.y + piece.height() <= y) { // If the piece is above the row
-                piece.y++; // Move the piece down
-                while (!this.obstructed(piece.tiles, piece.x, piece.y)) { // If it can move further
-                    piece.y++; // Move the piece down
-                }
+        for (let y1 = y; y1 >= 0; y1--) {
+            if (y1 - 1 >= 0) {
+                this.grid[y1] = this.grid[y1 - 1];
+            } else {
+                this.grid[y1] = new Array(this.width).fill(0);
             }
         }
     }
@@ -128,15 +120,21 @@ export class Map {
                 if (tile > 0) { // Make sure the tile has data
                     if (gridX < 0 || gridX >= this.width) return true;  // Check if the piece is out of bounds on the x axis
                     if (gridY >= this.height) return true; // Check if the piece is out of bounds on the y axis
-                    for (let piece of this.solid) { // Iterate over the solid pieces
-                        if (piece.contains(gridX, gridY)) { // Check if the pieces overlap
-                            return true;
-                        }
-                    }
+                    return this.containsAny(gridX, gridY);
                 }
             }
         }
         return false;
     }
 
+    containsAny(x: number, y: number) {
+        if (y >= 0 && y < this.grid.length) {
+            const row: number[] = this.grid[y];
+            if (x >= 0 && x < row.length) {
+                const tile: number = row[x];
+                return tile > 0;
+            }
+        }
+        return y > 0; // Position is out of bounds
+    }
 }

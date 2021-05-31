@@ -12,9 +12,9 @@ const PORT: number = parseInt(process.env.PORT ?? '80');
 // The host the server will run on
 const HOST: string = process.env.HOST ?? '0.0.0.0';
 // The minimum number of players required to start
-const MIN_PLAYERS: number = parseInt(process.env.MIN_PLAYERS ?? '2');
+export const MIN_PLAYERS: number = parseInt(process.env.MIN_PLAYERS ?? '2');
 // The amount of updates to wait for before starting the game
-const START_DELAY: number = parseInt(process.env.START_DELAY ?? '5');
+const START_DELAY: number = parseInt(process.env.START_DELAY ?? '200');
 
 export class Server {
 

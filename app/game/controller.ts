@@ -7,7 +7,7 @@ import {EMPTY_PIECE, Piece} from "./map/piece";
 // The amount of updates that must occur before moving down
 const MOVE_DELAY: number = parseInt(process.env.MOVE_DELAY ?? '4');
 // The amount of updates before a piece will place
-const PLACE_DELAY: number = parseInt(process.env.PLACE_DELAY ?? '1.5');
+const PLACE_DELAY: number = parseInt(process.env.PLACE_DELAY ?? '2');
 
 export class Controller {
 
@@ -135,6 +135,7 @@ export class Controller {
             }
         }
         if (this.moveLeft) { // If we need to move left
+            await this.collisions.update(); // Update the collisions
             if (!this.collisions.left) { // If we arent collided left
                 // If we wont be obstructed on the left
                 if (!this.map.obstructed(this.piece.tiles, this.piece.x - 1, this.piece.y)) {
@@ -144,6 +145,7 @@ export class Controller {
             }
             this.moveLeft = false; // We don't need to move anymore
         } else if (this.moveRight) { // If we need to move right
+            await this.collisions.update(); // Update the collisions
             if (!this.collisions.right) { // If we arent collided right
                 // If we wont be obstructed on the right
                 if (!this.map.obstructed(this.piece.tiles, this.piece.x + 1, this.piece.y)) {

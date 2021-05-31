@@ -5,7 +5,7 @@ const chalk: Chalk = require('chalk');
 // The width of the title for each log
 const PROMPT_WIDTH: number = parseInt(process.env.PROMPT_WIDTH ?? "15");
 // Whether or not to print debug messages
-const DEBUG: boolean = parseInt(process.env.DEBUG ?? '0') > 0;
+const DEBUG: boolean = (process.env.DEBUG ?? 'false') === 'true';
 
 /**
  *  Adds padding to either side of the

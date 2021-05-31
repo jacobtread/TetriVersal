@@ -1,19 +1,21 @@
 import {GameMode} from "../gamemode";
 import {Client} from "../../../server/client";
-import {Game} from "../../game";
+import {Game, SPAWN_DELAY} from "../../game";
 import {Controller} from "../../controller";
 import {Piece} from "../../map/piece";
-import {Map} from "../../map/map";
 import {okay} from "../../../log";
 import {random} from "../../../utils";
 import {PacketPipe} from "../../../server/packet";
+import {MIN_PLAYERS} from "../../../server/server";
 
 // The minimum updates before the controls can be swapped
 const CONTROL_SWAP_MIN: number = parseInt(process.env.CONTROL_SWAP_MIN ?? '15');
 // The maximum updates before the controls can be swapped
 const CONTROL_SWAP_MAX: number = parseInt(process.env.CONTROL_SWAP_MAX ?? '20');
-// The amount of updates to wait before spawning a new piece
-const SPAWN_DELAY: number = parseInt(process.env.SPAWN_DELAY ?? '3');
+// The grid width of a control swap map
+const CONTROL_SWAP_WIDTH: number = parseInt(process.env.CONTROL_SWAP_WIDTH ?? '12');
+// The grid height of a control swap map
+const CONTROL_SWAP_HEIGHT: number = parseInt(process.env.CONTROL_SWAP_HEIGHT ?? '22');
 
 export class ControlSwap extends GameMode implements PacketPipe {
 
@@ -50,9 +52,10 @@ export class ControlSwap extends GameMode implements PacketPipe {
      *  @return {Promise<void>} A promise for when its done
      */
     async init(): Promise<void> {
-        const map: Map = this.game.map;
-        map.width = parseInt(process.env.CONTROL_SWAP_WIDTH ?? '12');
-        map.height = parseInt(process.env.CONTROL_SWAP_HEIGHT ?? '22');
+        this.game.map.resize(
+            CONTROL_SWAP_WIDTH, /* Control Swap Width */
+            CONTROL_SWAP_HEIGHT /* Control Swap Height */
+        )
     }
 
     /**
@@ -139,12 +142,18 @@ export class ControlSwap extends GameMode implements PacketPipe {
      *  @return {Promise<void>} A promise for when the controls are swapped
      */
     async swap(): Promise<void> {
-        okay('CONTROLS', 'Choosing a new player');
         let players: Client[] = this.server.joined();
-        if (players.length < 1) { // If we have no players
-            okay('GAME', 'Game lobby is empty shutting down.');
+        if (players.length < MIN_PLAYERS) { // If we dont have enough players
+            okay('GAME', 'Not enough players stopping game.');
             this.game.stop(); // Stop the game
         } else {
+            if (players.length === 1) { // If we only have one player
+                const player: Client = players[0]; // Get the player
+                if (this.controlClient === player) { // Check if they already have the controls
+                    return; // Return
+                }
+            }
+            okay('CONTROLS', 'Choosing a new player');
             const index: number = random(0, players.length - 1); // Pick a random player
             const client: Client = players[index]; // Get the client
             this.controlClient = client; // Set the control client

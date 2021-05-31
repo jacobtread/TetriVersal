@@ -6,7 +6,7 @@ const {error} = require('../log');
 const {validatePacket} = require('./packet')
 
 // The delay before a client is marked as disconnected
-const TIMEOUT_DELAY = parseInt(process.env.TIMEOUT_DELAY ?? '1000')
+const TIMEOUT_DELAY: number = parseInt(process.env.TIMEOUT_DELAY ?? '1000')
 
 export class Client {
 
