@@ -14,6 +14,11 @@ const name: string = 'TestClient' + random(100, 200);
 
 console.clear = () => console.log('\x1Bc');
 
+interface GameMode {
+    mode: number,
+    name: string
+}
+
 class ClientApp {
 
     client: WebSocket;
@@ -32,6 +37,9 @@ class ClientApp {
     active: Piece = EMPTY_PIECE;
     movingPieces: Dict<Piece> = {};
 
+
+    gameModes: GameMode[];
+
     constructor(endpoint: string) {
         this.client = new WebSocket(endpoint);
         const _this: ClientApp = this;
@@ -45,6 +53,7 @@ class ClientApp {
             });
         });
         this.client.on('message', data => this.message(data));
+        this.gameModes = [];
     }
 
     createTimeout(): NodeJS.Timeout {
@@ -121,6 +130,9 @@ class ClientApp {
             this.width = packet.width;
             this.height = packet.height;
             this.grid = createEmptyMatrix(this.width, this.height);
+        } else if (id == 18) {
+            this.gameModes = packet.modes;
+
         } else if (id === 19) {
             const uuid: string = packet.uuid;
             if (!this.movingPieces.hasOwnProperty(uuid)) {

@@ -109,6 +109,7 @@ export class Controller {
                     this.piece = rotated; // Set the piece to the rotated
                     // Send a RotateActivePacket
                     this.pipe.pipe({id: 15});
+
                 }
                 this.moveRotate = false;
             }

@@ -145,7 +145,7 @@ export class Server {
             // Broadcast a PlayerLeavePacket
             this._broadcast({
                 id: 5,
-                name: client.name,
+                uuid: client.uuid,
                 reason: reason,
             });
         }
@@ -194,6 +194,7 @@ export class Server {
                 } else {
                     this.startUpdates++;
                     const time: number = ((START_DELAY - this.startUpdates) * UPDATE_DELAY) / 1000;
+                    // Broadcast TimeTillStartPacket
                     this._broadcast({
                         id: 7,
                         time: Math.ceil(time)

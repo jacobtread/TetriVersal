@@ -4,7 +4,7 @@ const CLIENT_PACKETS: NodeJS.ReadOnlyDict<any> = {
     1: {name: 'string'},
     2: {key: 'string'},
     3: {reason: 'string'},
-    4: {option: 'number'}
+    4: {mode: 'number'}
 }
 
 export interface PacketPipe {
