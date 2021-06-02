@@ -18,7 +18,7 @@ export const MIN_PLAYERS: number = parseInt(process.env.MIN_PLAYERS ?? '2');
 const START_DELAY: number = parseInt(process.env.START_DELAY ?? '200');
 
 interface Votes {
-    [mode: number]: Client[]
+    [mode: number]: string[]
 }
 
 export class Server {
@@ -35,10 +35,6 @@ export class Server {
         this.socketServer = this.createSocketServer(); // Create a new socket server
         this.startUpdates = 0; // Set the start updates to zero
         this.votes = this.defaultVotes();
-    }
-
-    defaultVotes(): Votes {
-        return {0: [], 1: []}
     }
 
     /**
@@ -167,6 +163,9 @@ export class Server {
         }
     }
 
+    /**
+     *  Called when the game stops
+     */
     stopped(): void {
         // Send a StopPacket
         this._broadcast({id: 8});
@@ -185,6 +184,7 @@ export class Server {
         if (this.clients.length < MIN_PLAYERS) this.game.stop();
     }
 
+
     /**
      *  Called when a client votes on a gamemode
      *
@@ -192,7 +192,59 @@ export class Server {
      *  @param {number} option The option the client voted for
      */
     vote(client: Client, option: number): void {
+        if (option in this.votes) {
+            this.removeVote(client);
+            this.votes[option].push(client.uuid);
+            okay('VOTE', 'Client voted for mode ' + option, client.uuid)
+        }
+    }
 
+
+    /**
+     *  Creates an empty votes object with its default
+     *  values
+     *
+     *  @return {Votes} The default empty votes object
+     */
+    defaultVotes(): Votes {
+        return {0: [], 1: []}
+    }
+
+    /**
+     *  Removes the provided client from any existing vote lists
+     *
+     *  @param {Client} client The client that votes
+     */
+    removeVote(client: Client): void {
+        const keys: string[] = Object.keys(this.votes);
+        for (let _key of keys) {
+            const key: number = parseInt(_key);
+            const clients: string[] = this.votes[key];
+            this.votes[key] = clients.filter(c => c != client.uuid);
+        }
+    }
+
+    /**
+     *  Calculates the game mode with the highest
+     *  number of votes and returns its ID
+     *
+     *  @return {number} The id with the highest votes
+     *
+     */
+    voteResult(): number {
+        let highest: number = 0;
+        let highestMode: number = 0;
+        for (let _key in this.votes) {
+            if (this.votes.hasOwnProperty(_key)) {
+                const key: number = parseInt(_key);
+                const value: string[] = this.votes[key];
+                if (value.length > highest) {
+                    highestMode = key;
+                    highest = value.length;
+                }
+            }
+        }
+        return highestMode;
     }
 
     /**
@@ -212,6 +264,8 @@ export class Server {
             if (!this.game.started) {
                 if (this.startUpdates >= START_DELAY && !this.game.preparing) {
                     this.startUpdates = 0;
+                    const voteResult: number = this.voteResult();
+                    this.game.mode = this.game.getModeByID(voteResult);
                     await this.game.start();
                 } else {
                     this.startUpdates++;

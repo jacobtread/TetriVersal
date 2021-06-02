@@ -147,8 +147,8 @@ export class Client {
                 this.close(reason); // Close the connection
                 break;
             case 4: // VotePacket
-                const option: number = packet.option;
-                this.server.vote(this, option); // Vote for the option
+                const mode: number = packet.mode;
+                this.server.vote(this, mode); // Vote for the option
                 break;
         }
     }

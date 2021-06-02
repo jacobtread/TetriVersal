@@ -26,6 +26,8 @@ export class Map {
     }
 
     resize(width: number, height: number) {
+        this.width = width;
+        this.height = height;
         this.grid = createEmptyMatrix(width, height);
     }
 

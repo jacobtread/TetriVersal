@@ -1,3 +1,5 @@
+import {stat} from "fs";
+
 require('dotenv').config();
 import {createEmptyMatrix, deepCopy, random} from "./utils";
 import WebSocket, {Data} from "ws";
@@ -40,8 +42,11 @@ class ClientApp {
 
     gameModes: GameMode[];
 
+    state: number;
+
     constructor(endpoint: string) {
         this.client = new WebSocket(endpoint);
+        this.state = 0;
         const _this: ClientApp = this;
         this.aliveTimeout = this.createTimeout();
         clearTimeout(this.aliveTimeout);
@@ -82,12 +87,15 @@ class ClientApp {
         } else if (id === 1) {
             const uuid: string = packet.uuid;
             console.log(`Joined as ${name} : ${uuid}`);
+            this.state = 1;
         } else if (id === 2) {
             const reason: string = packet.reason;
             console.log('Failed to join: ' + reason);
+            this.state = 0;
         } else if (id === 3) {
             const reason: string = packet.reason;
             console.log('Disconnected: ' + reason);
+            this.state = 0;
         } else if (id === 4) {
             const name: string = packet.name;
             const uuid: string = packet.uuid;
@@ -99,13 +107,16 @@ class ClientApp {
         } else if (id === 6) {
             console.clear();
             console.log('Game started');
+            this.state = 2;
         } else if (id === 7) {
             console.clear();
             const time: number = packet.time;
             console.log(`Game starting in ${time}s`);
+            this.state = 1;
         } else if (id === 8) {
             console.clear()
             console.log('Game Over');
+            this.state = 0;
         } else if (id === 9) {
             this.controlling = true;
         } else if (id === 10) {
@@ -132,6 +143,8 @@ class ClientApp {
             this.grid = createEmptyMatrix(this.width, this.height);
         } else if (id == 18) {
             this.gameModes = packet.modes;
+            console.log('Available game modes:');
+            console.log(this.gameModes);
         } else if (id === 19) {
             const uuid: string = packet.uuid;
             if (!this.movingPieces.hasOwnProperty(uuid)) {
@@ -144,7 +157,7 @@ class ClientApp {
             }
         }
 
-        if (id > 11 && id < 20) {
+        if (id > 11 && id < 20 && id != 18) {
             const data: number[][] = await this.render();
             console.clear();
             this.renderGrid(data);
@@ -223,18 +236,27 @@ class ClientApp {
                 }
                 outRow += ' '
             }
-            outRow+='\n';
+            outRow += '\n';
             console.log(outRow);
         }
     }
 
     input(key: string) {
-        console.log(key)
         if (!this.controlling) return;
         this.send({
             id: 2,
             key
         })
+    }
+
+    vote(value: number) {
+        if (this.state === 1) {
+            console.log('voted', value)
+            this.send({
+                id: 4,
+                mode: value
+            });
+        }
     }
 }
 
@@ -262,6 +284,12 @@ process.stdin.on('keypress', (str, key) => {
             case 'down':
             case 's':
                 testClient.input('down')
+                break;
+
+            case '1':
+            case '2':
+                const value: number = parseInt(key.name) - 1;
+                testClient.vote(value);
                 break;
         }
     }
