@@ -203,7 +203,6 @@ Used in teamwork mode to indicate where the piece is of another player in the ga
 | y    | number | The y position of the piece
 | tiles | number[] |  A 2D grid representing the shape
 
-
 ## Client Packets
 
 ### Keep Alive Packet

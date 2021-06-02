@@ -2,6 +2,11 @@ import {Server} from "../../server/server";
 import {Client} from "../../server/client";
 import {Game} from "../game";
 
+export const GAME_MODES = [
+    {mode: 0, name: "Control Swap"},
+    {mode: 1, name: "Teamwork"}
+]
+
 export class GameMode {
 
     server: Server; // The game server

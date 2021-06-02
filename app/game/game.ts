@@ -6,9 +6,11 @@ import {deepCopy, ExclusionRule, none, random} from "../utils";
 import {debug, good, okay} from "../log";
 import {SHAPES} from "./map/piece";
 import {Client} from "../server/client";
+import {Teamwork} from "./mode/modes/teamwork";
 
 // The amount of updates to wait before spawning a new piece
 export const SPAWN_DELAY: number = parseInt(process.env.SPAWN_DELAY ?? '3');
+const DEFAULT_GAMEMODE: number = parseInt(process.env.DEFAULT_GAMEMODE ?? '0')
 
 export class Game {
 
@@ -31,7 +33,25 @@ export class Game {
         this.started = false;
         this.preparing = false;
         this.map = new Map(this);
-        this.mode = new ControlSwap(this);
+        this.mode = this.getModeByID(DEFAULT_GAMEMODE)
+    }
+
+    /**
+     *  Converts the provided ID into a game mode
+     *  object
+     *
+     *  0 = ControlSwap
+     *  1 = Teamwork
+     *
+     *  @param {number} id The id of the gamemode
+     *  @return {GameMode} The gamemode
+     */
+    getModeByID(id: number): GameMode {
+        if (id === 1) {
+            return new Teamwork(this);
+        } else {
+            return new ControlSwap(this);
+        }
     }
 
     /**
@@ -109,9 +129,8 @@ export class Game {
      */
     stop(): void {
         this.reset(); // Reset the game
-        // Send a StopPacket
-        this.server._broadcast({id: 8});
         okay('GAME', 'Game Over');
+        this.server.stopped();
     }
 
     /**
@@ -122,7 +141,7 @@ export class Game {
         this.ready = false;
         this.preparing = false;
         this.started = false;
-        this.mode = new ControlSwap(this);
+        this.mode = this.getModeByID(DEFAULT_GAMEMODE);
         this.map.reset();
     }
 

@@ -132,7 +132,6 @@ class ClientApp {
             this.grid = createEmptyMatrix(this.width, this.height);
         } else if (id == 18) {
             this.gameModes = packet.modes;
-
         } else if (id === 19) {
             const uuid: string = packet.uuid;
             if (!this.movingPieces.hasOwnProperty(uuid)) {
@@ -148,7 +147,7 @@ class ClientApp {
         if (id > 11 && id < 20) {
             const data: number[][] = await this.render();
             console.clear();
-            this.gridify(data);
+            this.renderGrid(data);
             if (this.controlling) {
                 console.log('I am controlling');
             }
@@ -199,24 +198,34 @@ class ClientApp {
     }
 
 
-    gridify(rows: any[][]) {
-        for (let row of rows) {
-            let line: string = '_' + row.reduce((prev: string, curr: number): string => {
-                return prev + '_' + curr
-            });
-            while (line.match(/_[0-9]/)) {
-                line = line.replace('_0', chalk.bgHex('#333333').gray(' 0 '))
-                line = line.replace('_1', chalk.bgGreen(' 1 '))
-                line = line.replace('_2', chalk.bgCyan(' 2 '))
-                line = line.replace('_3', chalk.bgRed(' 3 '))
-                line = line.replace('_4', chalk.bgYellow(' 4 '))
-                line = line.replace('_5', chalk.bgMagenta(' 5 '))
-                line = line.replace('_6', chalk.bgBlue(' 6 '))
-                line = line.replace('_9', chalk.white(' 9 '))
+    renderGrid(rows: any[][]) {
+        for (let y = 0; y < rows.length; y++) {
+            const row = rows[y];
+            let outRow: string = '';
+            for (let x = 0; x < row.length; x++) {
+                const tile = row[x];
+                if (tile === 0) {
+                    outRow += chalk.bgHex('#333').gray('   ');
+                } else if (tile === 1) {
+                    outRow += chalk.bgGreen('   ');
+                } else if (tile === 2) {
+                    outRow += chalk.bgCyan('   ');
+                } else if (tile === 3) {
+                    outRow += chalk.bgRed('   ');
+                } else if (tile === 4) {
+                    outRow += chalk.bgYellow('   ');
+                } else if (tile === 5) {
+                    outRow += chalk.bgMagenta('   ');
+                } else if (tile === 6) {
+                    outRow += chalk.bgBlue('   ');
+                } else if (tile === 9) {
+                    outRow += chalk.bgWhite('   ');
+                }
+                outRow += ' '
             }
-            console.log('  ' + line)
+            outRow+='\n';
+            console.log(outRow);
         }
-        console.log();
     }
 
     input(key: string) {

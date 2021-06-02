@@ -57,7 +57,7 @@ export class Client {
         this._score = amount;
         // Send a ScoreUpdatePacket
         this.send({
-            id: 1,
+            id: 16,
             score: amount
         }).then().catch(); // Result is ignored
     }
@@ -110,22 +110,30 @@ export class Client {
                 this._send({id: 0});
                 break;
             case 1: // JoinRequestPacket
-                const name: string = packet.name;
-                if (this.server.isNameUsed(name)) { // If the name is already in use
+                if (!this.server.game.started) {
+                    const name: string = packet.name;
+                    if (this.server.isNameUsed(name)) { // If the name is already in use
+                        // Send a JoinFailurePacket to the client
+                        this._send({
+                            id: 2,
+                            reason: 'Name already in use!'
+                        });
+                    } else {
+                        this.name = name; // Set the client's name
+                        // Send a JoinResponsePacket to the client
+                        this._send({
+                            id: 1,
+                            uuid: this.uuid
+                        });
+                        // Join the server
+                        this.server.join(this);
+                    }
+                } else {
                     // Send a JoinFailurePacket to the client
                     this._send({
                         id: 2,
-                        reason: 'Name already in use!'
+                        reason: 'Game already started!'
                     });
-                } else {
-                    this.name = name; // Set the client's name
-                    // Send a JoinResponsePacket to the client
-                    this._send({
-                        id: 1,
-                        uuid: this.uuid
-                    });
-                    // Join the server
-                    this.server.join(this);
                 }
                 break;
             case 2: // InputPacket

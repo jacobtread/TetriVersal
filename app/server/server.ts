@@ -3,6 +3,7 @@ import {_p, ExclusionRule, getPossibleAddresses, none} from "../utils";
 import * as WebSocket from "ws";
 import {Game} from "../game/game";
 import {UPDATE_DELAY} from "../app";
+import {GAME_MODES} from "../game/mode/gamemode";
 
 const {v4} = require('uuid');
 const {okay, good, debug} = require('../log');
@@ -16,19 +17,28 @@ export const MIN_PLAYERS: number = parseInt(process.env.MIN_PLAYERS ?? '2');
 // The amount of updates to wait for before starting the game
 const START_DELAY: number = parseInt(process.env.START_DELAY ?? '200');
 
+interface Votes {
+    [mode: number]: Client[]
+}
+
 export class Server {
 
     game: Game; // The current game instance
     clients: Client[]; // The connected clients
     socketServer: WebSocket.Server; // The web socket server
-
     startUpdates: number; // The number of updates passed towards starting
+    votes: Votes;
 
     constructor() {
         this.game = new Game(this); // Create a new game
         this.clients = []; // Set the clients to an empty array
         this.socketServer = this.createSocketServer(); // Create a new socket server
         this.startUpdates = 0; // Set the start updates to zero
+        this.votes = this.defaultVotes();
+    }
+
+    defaultVotes(): Votes {
+        return {0: [], 1: []}
     }
 
     /**
@@ -130,7 +140,13 @@ export class Server {
             uuid: client.uuid,
             name: client.name
         }, c => client.isSelf(c));
+        // Send the client a GameModesPacket
+        client._send({
+            id: 18,
+            modes: GAME_MODES
+        });
     }
+
 
     /**
      *  Called when a client leaves broadcasts a
@@ -149,6 +165,12 @@ export class Server {
                 reason: reason,
             });
         }
+    }
+
+    stopped(): void {
+        // Send a StopPacket
+        this._broadcast({id: 8});
+        this.votes = this.defaultVotes();
     }
 
     /**
