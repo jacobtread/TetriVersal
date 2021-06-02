@@ -1,6 +1,6 @@
 ![Tetri-Versal](https://raw.githubusercontent.com/jacobtread/TetriVersal/main/logo.png)
 
-# 🤖 Tetri Versal
+# 🍫 Tetri Versal
 
 ![NodeJs](https://img.shields.io/badge/Powered%20By-NodeJS-68A063?style=for-the-badge)
 ![NOT PRODUCTION READY](https://img.shields.io/badge/Not%20Ready%20For%20Production-ef4550?style=for-the-badge)
@@ -9,15 +9,20 @@
 
 #### This is the server portion of the code (most of the logic ‍🏭)
 
+###### 🚧 This is still work in progress but this server is mostly working 🚧
+
 A small game project idea for a multiplayer Tetri style game where the controls rotate between the players developed
 by [👓 Jacobtread](https://github.com/jacobtread) and [🥽 LaSpruca](https://github.com/laspruca)
 
 The final product of the game is intended to have multiple game-modes
 
-This game is being made to be used as our lan game for the NCEA
-Assignment [👨‍🎓 2.6 - AS91895](https://www.nzqa.govt.nz/nqfdocs/ncea-resource/achievements/2019/as91895.pdf) instead
-of us having to use another game we decided to make our own and after pondering ideas in class we game up with this game
-idea
+We are planning to use this game for a NCEA Assessment involving setting up a LAN game server this assessment is
+available at
+[👨‍🎓 2.6 - AS91895](https://www.nzqa.govt.nz/nqfdocs/ncea-resource/achievements/2019/as91895.pdf) This gives us the
+freedom of easily meeting the legal requirements for the game along with the other requirements that must be met by the
+specifications including the inability to use an internet connection on the machines. After pondering ideas for a game
+to choose in class we sporadically unleashed out ideas for this game together which gave us many ideas for getting
+started with this game/
 
 The goal of this game is to be a LAN game that can be played on simple hardware with ease and little setup
 (The server files will be packed into a single exe)
@@ -38,7 +43,7 @@ This game is currently in an unfinished state
 - "VS" (Maybe)
     - Side by side challenge mode competing to see who can get the highest score
 - "Control Swap"
-    - The controls for the game are randomly swapped between the players and they must work together to achieve a win
+    - The controls for the game are randomly swapped between the players, and they must work together to achieve a win
 
 ### 🧠 Other Ideas
 
@@ -63,10 +68,52 @@ This game is currently in an unfinished state
 - [x] Implement the world into the server
 - [x] Re-write Packet system
 - [x] Runnable server
+- [x] Documentation
 
 ### 👀 TODO
 
-- [ ] Documentation
-    - Kind of making progress on this, but it will just end up happening as I go or just when I get bored
+- [ ] Get nathan to make a proper client
+
+### 📦 Deployment
+
+This application is packaged using [pkg](https://www.npmjs.com/package/pkg) this bundles our application all into one
+singular executable that has its own nodejs runtime which allows us to easily distribute and setup new servers
+
+To package TetriVersal from source you can run the following command in the directory containing the package.json
+
+Packaging the server
+```shell
+npm run package
+```
+Packaging the test client
+```shell
+npm run package:client
+```
+
+### 🔨 Building
+Due to the project being written with TypeScript you will have to convert the code to JavaScript before you can
+run.
+
+If you have [ts-node](https://www.npmjs.com/package/ts-node) install you can run the following command to start the server
+without having to run any  other command
+```shell
+npm run start:ts
+```
+
+Otherwise, to build the application and start it you can run
+```shell
+npm run start 
+```
+
+Or if you would only like to build the application you can just run
+```shell
+npm run build
+```
+or in the project root
+```shell
+tsc 
+```
+(Note compiling the TypeScript code requires that you have the TypeScript Compiler "tsc" installed)
+
 
 Code go brrrr 🧠
