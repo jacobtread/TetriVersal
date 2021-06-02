@@ -1,15 +1,15 @@
-import {stat} from "fs";
-
-require('dotenv').config();
 import {createEmptyMatrix, deepCopy, random} from "./utils";
 import WebSocket, {Data} from "ws";
 import {EMPTY_PIECE, Piece} from "./game/map/piece";
 import chalk from "chalk";
 import readline from "readline";
+
+require('dotenv').config();
 import Dict = NodeJS.Dict;
 
 const PORT: string = process.env.PORT ?? '80';
 const HOST: string = process.env.HOST ?? 'localhost';
+const COMPACT: boolean = (process.env.COMPACT ?? 'true') === 'true';
 
 const endpoint: string = `ws://${HOST}:${PORT}`;
 const name: string = 'TestClient' + random(100, 200);
@@ -234,9 +234,9 @@ class ClientApp {
                 } else if (tile === 9) {
                     outRow += chalk.bgWhite('   ');
                 }
-                outRow += ' '
+                if (!COMPACT) outRow += ' '
             }
-            outRow += '\n';
+            if (!COMPACT) outRow += '\n';
             console.log(outRow);
         }
     }
