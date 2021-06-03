@@ -144,7 +144,7 @@ Sent to the client to indicate the current position of the moving shape
 
 | name | type | value
 |----|--------|-----------------------------|
-| id | number | 13
+| id | number | 14
 | x  | number | The x position of the shape
 | y  | number | The y position of the shape
 
