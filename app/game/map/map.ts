@@ -84,7 +84,14 @@ export class Map {
                 await this.clear(y);
             }
         }
-        this.game.mode.cleared(cleared).then().catch(); // Pass the clearing data to the game mode
+        if (cleared.length > 0) { // If we cleared any rows
+            this.game.mode.cleared(cleared).then().catch(); // Pass the clearing data to the game mode
+            // Broadcast ClearedPacket
+            this.game.server._broadcast({
+                id: 20,
+                rows: cleared
+            });
+        }
     }
 
     /**

@@ -203,6 +203,15 @@ Used in teamwork mode to indicate where the piece is of another player in the ga
 | y    | number | The y position of the piece
 | tiles | number[] |  A 2D grid representing the shape
 
+### Cleared Rows Packet
+
+Sent to all clients after one or more rows get cleared
+
+| name | type | value
+|------|------|---------|
+| id | number | 20
+| rows | number[] | The y index's of the cleared row
+
 ## Client Packets
 
 ### Keep Alive Packet
